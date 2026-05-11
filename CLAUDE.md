@@ -168,9 +168,3 @@ cd client && npm run dev   # port 5173
 # Dừng: Ctrl + C trong mỗi terminal
 ```
 
----
-
-## Ghi chú
-
-- Session file gốc: `C:\Users\ryan\.claude\projects\...\49c02158-982d-4a46-915d-1d1f592082b0.jsonl`
-- Để tiếp tục đúng context: `claude --resume 49c02158-982d-4a46-915d-1d1f592082b0`
