@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Build output
+client/dist/
+server/dist/
+
+# Environment variables (sensitive!)
+.env
+.env.local
+server/.env
+
+# Database (user data)
+server/data/db.json
+server/data/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Claude Code config
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db

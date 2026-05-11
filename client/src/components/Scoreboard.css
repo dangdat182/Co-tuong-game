@@ -1,0 +1,69 @@
+.sb-bg {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1a0a00, #3d1a00, #1a0a00);
+  padding: 20px;
+}
+
+.sb-card {
+  background: rgba(255,255,255,0.05);
+  border: 2px solid rgba(200,134,10,0.5);
+  border-radius: 16px;
+  padding: 32px;
+  width: 100%;
+  max-width: 640px;
+}
+
+.sb-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.sb-header h2 { color: #f0c060; margin: 0; font-size: 24px; }
+
+.btn-back {
+  background: transparent;
+  border: none;
+  color: #c8a060;
+  cursor: pointer;
+  font-size: 14px;
+  transition: color 0.2s;
+  padding: 0;
+}
+.btn-back:hover { color: #f0c060; }
+
+.sb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+.sb-table th {
+  color: #c8a060;
+  font-weight: 600;
+  padding: 10px 12px;
+  text-align: center;
+  border-bottom: 2px solid rgba(200,134,10,0.4);
+}
+.sb-table td {
+  padding: 12px;
+  text-align: center;
+  color: #e8d0a0;
+  border-bottom: 1px solid rgba(200,134,10,0.15);
+}
+.sb-table tr:hover td { background: rgba(200,134,10,0.08); }
+.sb-table tr.me td { background: rgba(200,134,10,0.15); }
+
+.rank { font-size: 18px; width: 40px; }
+.uname { text-align: left !important; font-weight: 500; }
+.you { font-size: 12px; color: #c8860a; margin-left: 6px; }
+.points { color: #f0c060 !important; font-weight: bold; font-size: 17px; }
+.wins   { color: #88ff88 !important; }
+.losses { color: #ff8888 !important; }
+.draws  { color: #aaaaff !important; }
+
+.sb-loading { color: #c8a060; text-align: center; padding: 40px; }
+.sb-empty   { color: #c8a060; text-align: center; padding: 30px; }
+.sb-note    { color: #8a6040; font-size: 13px; text-align: center; margin-top: 16px; }

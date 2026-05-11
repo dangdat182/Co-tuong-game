@@ -1,0 +1,188 @@
+.auth-bg {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1a0a00 0%, #3d1a00 50%, #1a0a00 100%);
+}
+
+.auth-card {
+  background: #fff8ee;
+  border-radius: 16px;
+  padding: 40px;
+  width: 360px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+  border: 2px solid #c8860a;
+}
+
+.auth-title {
+  text-align: center;
+  margin-bottom: 28px;
+}
+.auth-title .auth-icon {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 8px;
+}
+.auth-title h1 {
+  font-size: 24px;
+  color: #8B1A1A;
+  margin: 0;
+  font-family: 'KaiTi','STKaiti','SimSun',serif;
+  letter-spacing: 1px;
+}
+
+.auth-tabs {
+  display: flex;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid #c8860a;
+  margin-bottom: 24px;
+}
+.auth-tabs button {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 15px;
+  color: #8B4513;
+  transition: background 0.2s;
+}
+.auth-tabs button.active {
+  background: #c8860a;
+  color: #fff;
+  font-weight: bold;
+}
+
+.auth-form { display: flex; flex-direction: column; gap: 16px; }
+
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group label { font-size: 14px; color: #5a3010; font-weight: 600; }
+.form-group input {
+  padding: 10px 14px;
+  border: 2px solid #d4a057;
+  border-radius: 8px;
+  font-size: 15px;
+  background: #fffbf0;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.form-group input:focus { border-color: #c8860a; }
+
+.auth-error {
+  background: #ffe0e0;
+  color: #c00;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  border: 1px solid #ffaaaa;
+}
+
+.btn-primary {
+  padding: 12px;
+  background: linear-gradient(135deg, #c8860a, #8B1A1A);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  letter-spacing: 0.5px;
+}
+.btn-primary:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.form-group select {
+  padding: 10px 14px;
+  border: 2px solid #d4a057;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fffbf0;
+  color: #5a3010;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.form-group select:focus { border-color: #c8860a; }
+
+.field-hint { font-size: 12px; color: #9a7040; }
+
+.auth-success {
+  background: #e0ffe0;
+  color: #060;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  border: 1px solid #aaffaa;
+}
+
+.btn-forgot {
+  background: transparent;
+  border: none;
+  color: #c8860a;
+  font-size: 14px;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: underline;
+  padding: 0;
+  transition: color 0.2s;
+}
+.btn-forgot:hover { color: #8B1A1A; }
+
+.btn-back-text {
+  background: transparent;
+  border: none;
+  color: #8B4513;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s;
+}
+.btn-back-text:hover { color: #c8860a; }
+
+.forgot-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.forgot-header h3 {
+  color: #8B1A1A;
+  font-size: 18px;
+  margin: 0;
+  text-align: center;
+}
+
+.forgot-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.step {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: bold;
+  background: #e8d0a0;
+  color: #8B4513;
+  border: 2px solid #d4a057;
+}
+.step.active { background: #c8860a; color: #fff; border-color: #c8860a; }
+.step.done   { background: #4a8; color: #fff; border-color: #4a8; }
+.step-line   { flex: 1; max-width: 40px; height: 2px; background: #d4a057; }
+
+.security-question-box {
+  background: #fff3d0;
+  border: 1px solid #d4a057;
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sq-label { font-size: 12px; color: #9a7040; font-weight: 600; }
+.sq-text  { font-size: 14px; color: #5a3010; font-weight: 500; }

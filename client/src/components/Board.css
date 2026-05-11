@@ -1,0 +1,13 @@
+.board-wrapper {
+  display: inline-block;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  overflow: hidden;
+  background: #f0c060;
+}
+
+.board-svg {
+  display: block;
+  touch-action: none;
+  user-select: none;
+}
