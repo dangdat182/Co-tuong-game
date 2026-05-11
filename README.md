@@ -1,56 +1,140 @@
 # Cờ Tướng Online
 
-## Cách chạy
+Game cờ tướng web với chế độ chơi vs AI và chơi online real-time.
 
-### Cài dependencies (chỉ cần làm 1 lần)
+## Tính năng
+
+- Đăng ký / đăng nhập / quên mật khẩu (câu hỏi bảo mật)
+- Chơi vs AI — 3 mức độ: Dễ / Bình thường / Khó (Minimax + Alpha-Beta)
+- Chơi online real-time — tạo phòng & mã 6 ký tự, chat trong game
+- Timer đếm ngược — ∞ / 5 / 10 / 15 / 30 phút mỗi bên
+- Đề nghị hòa, đầu hàng, phát hiện chiếu hết / bế tắc
+- Bảng xếp hạng (Thắng×3 + Hòa×1 = Điểm)
+- 4 theme bàn cờ: Cổ điển / Tối / Ngọc / Lam
+- Âm thanh: đi quân, ăn quân, chiếu, thắng/thua/hòa
+
+## Tech Stack
+
+| Phần | Công nghệ |
+|---|---|
+| Backend | Node.js + Express + Socket.IO + TypeScript |
+| Frontend | React 18 + Vite + TypeScript |
+| Auth | JWT + bcryptjs |
+| Database | JSON file (không cần cài DB) |
+| AI | Minimax + Alpha-Beta Pruning |
+
+---
+
+## Yêu cầu
+
+- [Node.js](https://nodejs.org) v18 trở lên
+- npm v9 trở lên
+
+---
+
+## Cài đặt
+
+### 1. Clone repo
+
+```bash
+git clone https://github.com/dangdat182/Co-tuong-game.git
+cd Co-tuong-game
+```
+
+### 2. Cài dependencies
+
 ```bash
 npm run install:all
 ```
 
-### Chạy cả server lẫn client cùng lúc
+Lệnh này cài đồng thời cho cả root, server và client.
+
+### 3. Cấu hình biến môi trường
+
+```bash
+cp server/.env.example server/.env
+```
+
+Mở `server/.env` và sửa giá trị:
+
+```env
+# JWT secret key — đặt chuỗi ngẫu nhiên dài, ví dụ dùng lệnh:
+# node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+JWT_SECRET=your_random_secret_key_here
+
+# Port server (mặc định 3001, không cần đổi nếu chạy local)
+PORT=3001
+```
+
+> **Quan trọng:** `server/.env` đã được gitignore, không bao giờ commit file này lên GitHub.
+
+### 4. Chạy game
+
 ```bash
 npm run dev
 ```
-- Frontend: http://localhost:5173
-- Backend:  http://localhost:3001
 
-Hoặc chạy riêng:
+Mở trình duyệt tại **http://localhost:5173**
+
+---
+
+## Cấu trúc project
+
+```
+Co-tuong-game/
+├── client/              # React frontend (Vite, port 5173)
+│   └── src/
+│       ├── components/  # Board, Game, Lobby, Auth, Chat, Scoreboard
+│       ├── game/        # Luật cờ tướng phía client
+│       └── utils/       # Âm thanh (Web Audio API)
+├── server/              # Express backend (port 3001)
+│   ├── src/
+│   │   ├── ai/          # Minimax engine
+│   │   ├── db/          # JSON file database
+│   │   ├── game/        # Luật cờ tướng phía server
+│   │   ├── middleware/  # JWT auth
+│   │   ├── routes/      # REST API (auth, scores, ai)
+│   │   └── socket/      # Socket.IO handlers
+│   ├── data/            # db.json tự tạo khi chạy lần đầu (gitignored)
+│   └── .env.example     # Mẫu biến môi trường
+└── package.json         # Root — chạy cả 2 bằng concurrently
+```
+
+---
+
+## Scripts
+
+| Lệnh | Mô tả |
+|---|---|
+| `npm run dev` | Chạy server + client cùng lúc |
+| `npm run install:all` | Cài dependencies cho cả 3 package |
+| `npm run build` | Build production cho server + client |
+
+Chạy riêng từng phần:
+
 ```bash
-# Terminal 1
+# Terminal 1 — server (port 3001)
 cd server && npm run dev
 
-# Terminal 2
+# Terminal 2 — client (port 5173)
 cd client && npm run dev
 ```
 
-## Cách dừng
+---
 
-**Nếu chạy bằng `npm run dev` (concurrently):** nhấn `Ctrl + C` trong terminal đang chạy là dừng cả hai.
+## Dừng server
 
-**Nếu chạy riêng từng terminal:** nhấn `Ctrl + C` trong từng terminal.
-
-**Nếu chạy nền và cần dừng thủ công:**
 ```bash
-# Dừng server (port 3001)
-npx kill-port 3001
-
-# Dừng client (port 5173)
-npx kill-port 5173
-
-# Dừng cả hai cùng lúc
+# Nhấn Ctrl + C trong terminal đang chạy
+# Hoặc dừng theo port:
 npx kill-port 3001 5173
 ```
 
-## Tính năng
-- Đăng ký / đăng nhập tài khoản local
-- Chơi vs AI (Dễ / Bình thường / Khó)
-- Chơi online real-time (tạo phòng + mã 6 ký tự)
-- Bảng xếp hạng (Thắng×3 + Hòa×1 = Điểm)
-- Đầu hàng, phát hiện chiếu hết, lật bàn theo màu quân
+---
 
-## Tech Stack
-- **Backend**: Node.js + Express + Socket.IO + TypeScript
-- **Frontend**: React + Vite + TypeScript
-- **Database**: JSON file (server/data/db.json)
-- **Auth**: JWT + bcryptjs
-- **AI**: Minimax + Alpha-Beta Pruning (depth 1/3/5)
+## Lưu ý khi deploy lên production
+
+- Đặt `JWT_SECRET` là chuỗi ngẫu nhiên mạnh (tối thiểu 32 ký tự)
+- Thư mục `server/data/` cần có quyền ghi (lưu file `db.json`)
+- Cập nhật CORS origin trong `server/src/index.ts` theo domain thực tế
+- Build trước khi chạy: `npm run build`
