@@ -12,6 +12,9 @@ Game cờ tướng web với chế độ chơi vs AI và chơi online real-time.
 - Bảng xếp hạng (Thắng×3 + Hòa×1 = Điểm)
 - 4 theme bàn cờ: Cổ điển / Tối / Ngọc / Lam
 - Âm thanh: đi quân, ăn quân, chiếu, thắng/thua/hòa
+- **Hoàn tác** (vs AI) — lùi 2 nước (nước bạn + nước AI) trong 1 click, phục hồi cả đồng hồ
+- **Đấu lại** (online) — sau ván kết thúc, gửi đề nghị đấu lại, đối thủ đồng ý thì reset ngay không cần tạo phòng mới
+- **Copy link phòng** — tạo link `?join=CODE` gửi bạn bè, click link là vào thẳng (tự đăng nhập xong auto-join)
 
 ## Tech Stack
 
