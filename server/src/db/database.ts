@@ -9,21 +9,40 @@ export interface User {
   username: string;
   password: string;
   securityQuestion: string;
-  securityAnswer: string; // hashed
+  securityAnswer: string;
   createdAt: string;
 }
 interface Score { userId: number; wins: number; losses: number; draws: number; }
 
+export interface GameRecord {
+  id: number;
+  redUserId: number;
+  blackUserId: number;
+  redUsername: string;
+  blackUsername: string;
+  winner: 'red' | 'black' | null;
+  reason: string;
+  moveCount: number;
+  timeControl: number;
+  startedAt: string;
+  endedAt: string;
+}
+
 interface DbData {
   users: User[];
   scores: Score[];
+  games: GameRecord[];
   nextUserId: number;
+  nextGameId: number;
 }
 
 function load(): DbData {
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-  if (!fs.existsSync(dbPath))  return { users: [], scores: [], nextUserId: 1 };
-  return JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
+  if (!fs.existsSync(dbPath))  return { users: [], scores: [], games: [], nextUserId: 1, nextGameId: 1 };
+  const data = JSON.parse(fs.readFileSync(dbPath, 'utf-8')) as any;
+  if (!data.games)      data.games = [];
+  if (!data.nextGameId) data.nextGameId = 1;
+  return data as DbData;
 }
 
 function save(data: DbData) {
@@ -89,6 +108,22 @@ const db = {
     const s = data.scores.find(x => x.userId === userId);
     if (!u || !s) return null;
     return { username: u.username, wins: s.wins, losses: s.losses, draws: s.draws, points: s.wins * 3 + s.draws };
+  },
+
+  // ── games ──────────────────────────────────────────────────────────────────
+  insertGame(game: Omit<GameRecord, 'id'>): number {
+    const data = load();
+    const id = data.nextGameId++;
+    data.games.push({ id, ...game });
+    save(data);
+    return id;
+  },
+
+  getGamesByUserId(userId: number): GameRecord[] {
+    return load().games
+      .filter(g => g.redUserId === userId || g.blackUserId === userId)
+      .sort((a, b) => new Date(b.endedAt).getTime() - new Date(a.endedAt).getTime())
+      .slice(0, 50);
   },
 };
 

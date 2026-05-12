@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import Board from './Board';
 import Chat, { ChatMsg } from './Chat';
+import MoveHistory, { MoveRecord, buildMoveRecord } from './MoveHistory';
 import {
   Board as BoardType, Position, GameMove, Color,
   createInitialBoard, applyMove, isInCheck, getLegalMoves,
@@ -45,7 +46,9 @@ export function AIGame({ user, token, difficulty, timeControl, onBack }: AIGameP
   const [myTime, setMyTime]     = useState(timeControl > 0 ? timeControl : 0);
   const [aiTime, setAiTime]     = useState(timeControl > 0 ? timeControl : 0);
   const [muted, setMuted]       = useState(isMuted());
-  const [history, setHistory]   = useState<BoardSnapshot[]>([]);
+  const [history, setHistory]       = useState<BoardSnapshot[]>([]);
+  const [moveRecords, setMoveRecords] = useState<MoveRecord[]>([]);
+  const [reviewIndex, setReviewIndex] = useState<number | null>(null);
   const myColor: Color = 'red';
   const aiColor: Color = 'black';
 
@@ -110,6 +113,8 @@ export function AIGame({ user, token, difficulty, timeControl, onBack }: AIGameP
         if (data.move) {
           const captured = board[data.move.to[0]][data.move.to[1]];
           const newBoard = applyMove(board, data.move);
+          setMoveRecords(r => [...r, buildMoveRecord(board, newBoard, data.move, aiColor)]);
+          setReviewIndex(null);
           setBoard(newBoard);
           setLastMove(data.move);
           setTurn('red');
@@ -133,6 +138,9 @@ export function AIGame({ user, token, difficulty, timeControl, onBack }: AIGameP
     if (history.length === 0 || aiThinking || status !== 'playing') return;
     const snap = history[history.length - 1];
     setHistory(h => h.slice(0, -1));
+    // Remove last 2 records (player move + AI move), or 1 if AI didn't respond yet
+    setMoveRecords(r => r.length >= 2 ? r.slice(0, -2) : r.slice(0, -1));
+    setReviewIndex(null);
     setBoard(snap.board);
     setLastMove(snap.lastMove);
     setMyTime(snap.myTime);
@@ -144,9 +152,11 @@ export function AIGame({ user, token, difficulty, timeControl, onBack }: AIGameP
 
   function handleMove(from: Position, to: Position) {
     if (turn !== myColor || status !== 'playing' || aiThinking) return;
+    if (reviewIndex !== null) { setReviewIndex(null); return; } // exit review on move
     setHistory(h => [...h, { board, lastMove, myTime, aiTime }]);
     const captured = board[to[0]][to[1]];
     const newBoard = applyMove(board, { from, to });
+    setMoveRecords(r => [...r, buildMoveRecord(board, newBoard, { from, to }, myColor)]);
     setBoard(newBoard);
     setLastMove({ from, to });
     setTurn('black');
@@ -166,7 +176,7 @@ export function AIGame({ user, token, difficulty, timeControl, onBack }: AIGameP
     setLastMove(null); setStatus('playing'); setMessage('');
     setMyTime(timeControl > 0 ? timeControl : 0);
     setAiTime(timeControl > 0 ? timeControl : 0);
-    setHistory([]);
+    setHistory([]); setMoveRecords([]); setReviewIndex(null);
   }
 
   const DIFF_LABEL: Record<Difficulty, string> = { easy: 'Dễ', normal: 'Bình thường', hard: 'Khó' };
@@ -213,16 +223,21 @@ export function AIGame({ user, token, difficulty, timeControl, onBack }: AIGameP
             </div>
           )}
           <Board
-            board={board}
-            selected={selected}
-            onSelect={setSelected}
+            board={reviewIndex !== null ? moveRecords[reviewIndex].board : board}
+            selected={reviewIndex !== null ? null : selected}
+            onSelect={reviewIndex !== null ? () => {} : setSelected}
             onMove={handleMove}
             myColor={myColor}
-            disabled={turn !== myColor || status !== 'playing' || aiThinking}
-            lastMove={lastMove}
-            inCheck={isInCheck(board, myColor) && turn === myColor}
+            disabled={turn !== myColor || status !== 'playing' || aiThinking || reviewIndex !== null}
+            lastMove={reviewIndex !== null ? moveRecords[reviewIndex].move : lastMove}
+            inCheck={reviewIndex === null && isInCheck(board, myColor) && turn === myColor}
           />
-          {message && status === 'playing' && <div className="game-msg">{message}</div>}
+          {reviewIndex !== null && (
+            <div className="game-msg" style={{ background: 'rgba(80,80,200,0.15)', color: '#aac0ff', borderColor: 'rgba(80,80,200,0.35)' }}>
+              Xem lại nước {reviewIndex + 1}/{moveRecords.length} — <button className="mh-inline-back" onClick={() => setReviewIndex(null)}>↩ Hiện tại</button>
+            </div>
+          )}
+          {message && status === 'playing' && reviewIndex === null && <div className="game-msg">{message}</div>}
         </div>
 
         {/* Right: me + controls */}
@@ -261,6 +276,12 @@ export function AIGame({ user, token, difficulty, timeControl, onBack }: AIGameP
               🏳 Đầu hàng
             </button>
             <button className="btn-secondary" onClick={onBack}>← Về sảnh</button>
+            <MoveHistory
+              records={moveRecords}
+              reviewIndex={reviewIndex}
+              onReview={setReviewIndex}
+              interactive={true}
+            />
           </div>
         </aside>
       </div>
@@ -313,6 +334,8 @@ export function OnlineGame({ user, token, roomId, myColor, initialData, onBack }
   const [rematchSent, setRematchSent]         = useState(false);
   const [rematchDeclined, setRematchDeclined] = useState(false);
   const [muted, setMuted]               = useState(isMuted());
+  const [moveRecords, setMoveRecords]   = useState<MoveRecord[]>([]);
+  const [reviewIndex, setReviewIndex]   = useState<number | null>(null);
 
   const timeControl = initialData.timeControl ?? 0;
   const boardRef    = useRef<BoardType>(initialData.board);
@@ -337,7 +360,11 @@ export function OnlineGame({ user, token, roomId, myColor, initialData, onBack }
     socket.connect();
 
     socket.on('move_made', (data: any) => {
-      const wasCaptured = !!boardRef.current[data.move.to[0]]?.[data.move.to[1]];
+      const prevBoard = boardRef.current;
+      const wasCaptured = !!prevBoard[data.move.to[0]]?.[data.move.to[1]];
+      const mover: Color = data.turn === 'red' ? 'black' : 'red'; // who just moved
+      setMoveRecords(r => [...r, buildMoveRecord(prevBoard, data.board, data.move, mover)]);
+      setReviewIndex(null);
       boardRef.current = data.board;
       setBoard(data.board);
       setTurn(data.turn);
@@ -420,6 +447,8 @@ export function OnlineGame({ user, token, roomId, myColor, initialData, onBack }
       setRematchDeclined(false);
       setDrawOffered(false);
       setDrawOfferSent(false);
+      setMoveRecords([]);
+      setReviewIndex(null);
       scoreUpdated.current = false;
     });
 
@@ -573,18 +602,23 @@ export function OnlineGame({ user, token, roomId, myColor, initialData, onBack }
             )
           )}
           <Board
-            board={board}
+            board={reviewIndex !== null ? moveRecords[reviewIndex].board : board}
             flipped={myColor === 'black'}
-            selected={selected}
-            onSelect={setSelected}
+            selected={reviewIndex !== null ? null : selected}
+            onSelect={reviewIndex !== null ? () => {} : setSelected}
             onMove={handleMove}
             myColor={myColor}
-            disabled={turn !== myColor || gameStatus !== 'playing'}
-            lastMove={lastMove}
-            inCheck={inCheck}
+            disabled={turn !== myColor || gameStatus !== 'playing' || reviewIndex !== null}
+            lastMove={reviewIndex !== null ? moveRecords[reviewIndex].move : lastMove}
+            inCheck={reviewIndex === null && inCheck}
           />
-          {errorMsg && <div className="game-msg error">{errorMsg}</div>}
-          {!errorMsg && inCheck && gameStatus === 'playing' && (
+          {reviewIndex !== null && (
+            <div className="game-msg" style={{ background: 'rgba(80,80,200,0.15)', color: '#aac0ff', borderColor: 'rgba(80,80,200,0.35)' }}>
+              Xem lại nước {reviewIndex + 1}/{moveRecords.length} — <button className="mh-inline-back" onClick={() => setReviewIndex(null)}>↩ Hiện tại</button>
+            </div>
+          )}
+          {!reviewIndex && errorMsg && <div className="game-msg error">{errorMsg}</div>}
+          {!reviewIndex && !errorMsg && inCheck && gameStatus === 'playing' && (
             <div className="game-msg check">⚠ Tướng của bạn đang bị chiếu!</div>
           )}
         </div>
@@ -625,8 +659,233 @@ export function OnlineGame({ user, token, roomId, myColor, initialData, onBack }
               </button>
             )}
             <button className="btn-secondary" onClick={leaveGame}>← Về sảnh</button>
+            <MoveHistory
+              records={moveRecords}
+              reviewIndex={reviewIndex}
+              onReview={setReviewIndex}
+              interactive={gameStatus === 'finished'}
+            />
           </div>
         </aside>
+      </div>
+    </div>
+  );
+}
+
+// ─── Spectator Game ───────────────────────────────────────────────────────────
+
+interface SpectatorGameProps {
+  roomId: string;
+  initialData: { board: BoardType; turn: Color; players: any; timeControl: number; timeLeft: { red: number; black: number } };
+  initialMoves: GameMove[];
+  onBack: () => void;
+}
+
+export function SpectatorGame({ roomId, initialData, initialMoves, onBack }: SpectatorGameProps) {
+  const [board, setBoard]       = useState<BoardType>(initialData.board);
+  const [turn, setTurn]         = useState<Color>(initialData.turn);
+  const [lastMove, setLastMove] = useState<GameMove | null>(null);
+  const [gameStatus, setGameStatus] = useState<'playing' | 'finished'>('playing');
+  const [winner, setWinner]     = useState<Color | null>(null);
+  const [endReason, setEndReason] = useState('');
+  const [timeLeft, setTimeLeft] = useState(initialData.timeLeft ?? { red: 0, black: 0 });
+  const [moveRecords, setMoveRecords] = useState<MoveRecord[]>([]);
+  const [reviewIndex, setReviewIndex] = useState<number | null>(null);
+  const boardRef = useRef<BoardType>(initialData.board);
+  const timeControl = initialData.timeControl ?? 0;
+
+  const redName   = initialData.players?.red?.username   ?? 'Đỏ';
+  const blackName = initialData.players?.black?.username ?? 'Đen';
+
+  // Replay initial move history
+  useEffect(() => {
+    let b = createInitialBoard();
+    const recs: MoveRecord[] = [];
+    for (const mv of initialMoves) {
+      const color: Color = b[mv.from[0]][mv.from[1]]?.color ?? 'red';
+      const after = applyMove(b, mv);
+      recs.push(buildMoveRecord(b, after, mv, color));
+      b = after;
+    }
+    setMoveRecords(recs);
+  }, []); // eslint-disable-line
+
+  useEffect(() => {
+    socket.connect();
+    socket.on('move_made', (data: any) => {
+      const prev = boardRef.current;
+      const mover: Color = data.turn === 'red' ? 'black' : 'red';
+      setMoveRecords(r => [...r, buildMoveRecord(prev, data.board, data.move, mover)]);
+      setReviewIndex(null);
+      boardRef.current = data.board;
+      setBoard(data.board);
+      setTurn(data.turn);
+      setLastMove(data.move);
+      if (data.timeLeft) setTimeLeft(data.timeLeft);
+    });
+    socket.on('game_over', (data: any) => {
+      boardRef.current = data.board ?? boardRef.current;
+      setBoard(data.board ?? boardRef.current);
+      setGameStatus('finished');
+      setWinner(data.winner ?? null);
+      const reasonMap: Record<string, string> = {
+        checkmate: 'Chiếu hết', stalemate: 'Bế tắc — Hòa', resign: 'Đầu hàng',
+        disconnect: 'Ngắt kết nối', timeout: 'Hết giờ', draw_agreed: 'Đồng ý hòa',
+      };
+      setEndReason(reasonMap[data.reason] ?? '');
+    });
+    return () => {
+      socket.off('move_made'); socket.off('game_over');
+      socket.emit('leave_room', { roomId });
+    };
+  }, []); // eslint-disable-line
+
+  // Client-side timer for spectator
+  useEffect(() => {
+    if (!timeControl || gameStatus !== 'playing') return;
+    const interval = setInterval(() => {
+      setTimeLeft(prev => ({
+        red:   turn === 'red'   ? Math.max(0, prev.red   - 1) : prev.red,
+        black: turn === 'black' ? Math.max(0, prev.black - 1) : prev.black,
+      }));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [turn, gameStatus, timeControl]); // eslint-disable-line
+
+  return (
+    <div className="game-bg">
+      <div className="game-layout">
+        {/* Left: black player */}
+        <aside className="game-side left">
+          <div className="side-panel">
+            <div className="player-card opp">
+              <div className="player-icon">👤</div>
+              <div><div className="player-name">{blackName}</div><div className="player-sub">Quân Đen</div></div>
+              {turn === 'black' && gameStatus === 'playing' && <div className="turn-indicator opp-turn">Đang đi...</div>}
+            </div>
+            {timeControl > 0 && (
+              <div className={`timer ${turn === 'black' && gameStatus === 'playing' ? 'active' : ''} ${timeLeft.black <= 30 ? 'low' : ''}`}>
+                {formatTime(timeLeft.black)}
+              </div>
+            )}
+            <div className="spectator-badge">👁 Đang xem</div>
+          </div>
+        </aside>
+
+        {/* Center: board */}
+        <div className="game-center">
+          {gameStatus === 'finished' && (
+            <div className={`game-overlay ${winner === 'red' ? 'win' : winner === 'black' ? 'loss' : 'draw'}`}>
+              <div className="overlay-content">
+                <div className="overlay-icon">{winner ? '🏆' : '🤝'}</div>
+                <h2>{winner ? `${winner === 'red' ? redName : blackName} thắng!` : 'Hòa!'}</h2>
+                <p>{endReason}</p>
+                <button className="btn-secondary" onClick={onBack}>← Về sảnh</button>
+              </div>
+            </div>
+          )}
+          <Board
+            board={reviewIndex !== null ? moveRecords[reviewIndex].board : board}
+            selected={null}
+            onSelect={() => {}}
+            onMove={() => {}}
+            myColor="red"
+            disabled={true}
+            lastMove={reviewIndex !== null ? moveRecords[reviewIndex].move : lastMove}
+            inCheck={false}
+          />
+        </div>
+
+        {/* Right: red player + history */}
+        <aside className="game-side right">
+          <div className="side-panel">
+            <div className="player-card me">
+              <div className="player-icon">👤</div>
+              <div><div className="player-name">{redName}</div><div className="player-sub">Quân Đỏ</div></div>
+              {turn === 'red' && gameStatus === 'playing' && <div className="turn-indicator my-turn">Đang đi...</div>}
+            </div>
+            {timeControl > 0 && (
+              <div className={`timer ${turn === 'red' && gameStatus === 'playing' ? 'active' : ''} ${timeLeft.red <= 30 ? 'low' : ''}`}>
+                {formatTime(timeLeft.red)}
+              </div>
+            )}
+            <button className="btn-secondary" onClick={onBack}>← Về sảnh</button>
+            <MoveHistory records={moveRecords} reviewIndex={reviewIndex} onReview={setReviewIndex} interactive={true} />
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+// ─── Matchmaking Room ─────────────────────────────────────────────────────────
+
+interface MatchmakingRoomProps {
+  user: User;
+  timeControl: number;
+  onGameStart: (roomId: string, myColor: Color, data: any) => void;
+  onBack: () => void;
+}
+
+export function MatchmakingRoom({ user, timeControl, onGameStart, onBack }: MatchmakingRoomProps) {
+  const [status, setStatus] = useState<'connecting' | 'searching' | 'found'>('connecting');
+  const capturedRef = useRef<{ roomId: string; color: Color } | null>(null);
+
+  useEffect(() => {
+    const doJoin = () => {
+      setStatus('searching');
+      socket.emit('join_queue', { userId: user.id, username: user.username, timeControl });
+    };
+
+    socket.on('matched', (data: { roomId: string; color: Color }) => {
+      capturedRef.current = { roomId: data.roomId, color: data.color };
+      setStatus('found');
+    });
+    socket.on('game_start', (data: any) => {
+      if (capturedRef.current) {
+        onGameStart(capturedRef.current.roomId, capturedRef.current.color, data);
+      }
+    });
+    socket.on('error', (data: any) => {
+      alert(data.message ?? 'Lỗi kết nối');
+      onBack();
+    });
+
+    if (socket.connected) {
+      doJoin();
+    } else {
+      socket.once('connect', doJoin);
+      socket.connect();
+    }
+
+    return () => {
+      socket.off('matched');
+      socket.off('game_start');
+      socket.off('error');
+      socket.emit('leave_queue');
+    };
+  }, []); // eslint-disable-line
+
+  return (
+    <div className="game-bg">
+      <div className="waiting-container">
+        <div className="waiting-card">
+          {status === 'connecting' && (
+            <><div className="spinner" /><p>Đang kết nối...</p></>
+          )}
+          {status === 'found' && (
+            <><div className="spinner" /><p>Đã tìm được đối thủ! Đang vào phòng...</p></>
+          )}
+          {status === 'searching' && (
+            <>
+              <div className="spinner" />
+              <h2>🔍 Đang tìm đối thủ...</h2>
+              <p>Chờ người chơi khác vào hàng</p>
+              {timeControl > 0 && <p style={{ color: '#c8a060', fontSize: 14 }}>⏱ {Math.floor(timeControl / 60)} phút mỗi bên</p>}
+            </>
+          )}
+          <button className="btn-secondary" onClick={() => { socket.emit('leave_queue'); onBack(); }}>Hủy</button>
+        </div>
       </div>
     </div>
   );

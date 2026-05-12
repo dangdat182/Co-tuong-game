@@ -6,6 +6,7 @@ import cors from 'cors';
 import authRouter from './routes/auth';
 import scoresRouter from './routes/scores';
 import aiRouter from './routes/ai';
+import gamesRouter from './routes/games';
 import { setupSocketHandlers } from './socket/gameHandler';
 
 const app = express();
@@ -20,6 +21,7 @@ app.use(express.json({ limit: '2mb' }));
 app.use('/api/auth', authRouter);
 app.use('/api/scores', scoresRouter);
 app.use('/api/ai', aiRouter);
+app.use('/api/games', gamesRouter);
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok' }));
 

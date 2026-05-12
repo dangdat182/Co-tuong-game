@@ -1,0 +1,132 @@
+.gh-bg {
+  min-height: 100vh;
+  background: linear-gradient(160deg, #1a0a00 0%, #2d1200 50%, #1a0a00 100%);
+  display: flex;
+  justify-content: center;
+  padding: 32px 20px;
+}
+
+.gh-container {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.gh-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.gh-header h2 { color: #f0c060; margin: 0; font-size: 22px; }
+.gh-sub { color: #8a6040; font-size: 13px; margin-left: auto; }
+
+.gh-back-btn {
+  background: transparent;
+  border: 1px solid rgba(200,134,10,0.4);
+  color: #c8a060;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+.gh-back-btn:hover { background: rgba(200,134,10,0.1); color: #f0c060; }
+
+.gh-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #c8a060;
+  padding: 24px;
+}
+.gh-spinner {
+  width: 24px; height: 24px;
+  border: 3px solid rgba(200,134,10,0.3);
+  border-top-color: #c8860a;
+  border-radius: 50%;
+  animation: gh-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes gh-spin { to { transform: rotate(360deg); } }
+
+.gh-error {
+  padding: 16px;
+  background: rgba(200,0,0,0.1);
+  border: 1px solid rgba(200,0,0,0.3);
+  border-radius: 8px;
+  color: #ff9999;
+}
+
+.gh-empty {
+  padding: 40px;
+  text-align: center;
+  color: #6a5030;
+  font-size: 15px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(200,134,10,0.15);
+  border-radius: 10px;
+}
+
+.gh-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gh-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(200,134,10,0.18);
+  border-radius: 10px;
+  transition: background 0.15s;
+}
+.gh-row:hover { background: rgba(255,255,255,0.07); }
+.gh-row.win  { border-left: 4px solid #44cc66; }
+.gh-row.loss { border-left: 4px solid #cc4444; }
+.gh-row.draw { border-left: 4px solid #6688cc; }
+
+.gh-badge {
+  min-width: 52px;
+  text-align: center;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+.gh-badge.win  { background: rgba(68,204,102,0.18); color: #88eeaa; border: 1px solid rgba(68,204,102,0.4); }
+.gh-badge.loss { background: rgba(204,68,68,0.15);  color: #ffaaaa; border: 1px solid rgba(204,68,68,0.4); }
+.gh-badge.draw { background: rgba(100,136,204,0.15); color: #aabbff; border: 1px solid rgba(100,136,204,0.4); }
+
+.gh-info { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+
+.gh-players {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.gh-red   { color: #ee6655; font-weight: 600; }
+.gh-black { color: #aaaaaa; font-weight: 600; }
+.gh-vs    { color: #6a5030; font-size: 12px; }
+
+.gh-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #8a6040;
+  flex-wrap: wrap;
+}
+
+.gh-opp {
+  color: #8a6040;
+  font-size: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}

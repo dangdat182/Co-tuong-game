@@ -23,6 +23,13 @@ Xây dựng game Cờ Tướng web hoàn chỉnh gồm:
 - 🎨 Theme bàn cờ 4 loại (classic/dark/jade/blue), lưu localStorage
 - 🤝 Đề nghị hòa (offer/accept/decline) với UI overlay
 - ⏱ Time control trong Lobby (∞/5/10/15/30 phút)
+- ↩ Hoàn tác nước đi (AIGame) — lùi 2 nước + phục hồi timer + lịch sử
+- 🔄 Đấu lại (OnlineGame) — rematch offer/accept/decline
+- 🔗 Copy link phòng — link `?join=CODE` auto-join khi đăng nhập
+- 📋 Lịch sử nước đi — MoveHistory panel, click để xem lại thế cờ (AIGame + OnlineGame + Spectator)
+- 👁 Chế độ xem ván (SpectatorGame) — khán giả theo dõi real-time, replay lịch sử nước đi
+- 📚 Lưu lịch sử ván đấu — DB lưu tất cả ván online, GameHistory page trong Lobby
+- 🔍 Matchmaking — auto-ghép cặp server-side (`matchQueue`), random màu quân
 
 ---
 
@@ -62,12 +69,13 @@ Xây dựng game Cờ Tướng web hoàn chỉnh gồm:
 | `client/src/game/rules.ts` | Bản sao luật phía client (gợi ý nước đi + UI) |
 | `client/src/socket.ts` | Khởi tạo socket, `autoConnect: false` |
 | `client/src/App.tsx` | State machine điều hướng các view; `View` type có `timeControl` |
-| `client/src/components/Game.tsx` | `AIGame` (timer + sounds + mute), `OnlineGame` (timer + sounds + chat + draw offer + mute), `WaitingRoom` (pass timeControl) |
+| `client/src/components/Game.tsx` | `AIGame`, `OnlineGame`, `WaitingRoom`, `SpectatorGame`, `MatchmakingRoom` |
 | `client/src/components/Board.tsx` | SVG bàn cờ; export `BoardTheme`; đọc theme từ localStorage |
-| `client/src/components/Lobby.tsx` | Chọn độ khó, time control (∞/5/10/15/30 phút), theme bàn cờ |
+| `client/src/components/Lobby.tsx` | Chọn độ khó, time control, theme, matchmaking, watch room, game history |
 | `client/src/components/Auth.tsx` | Login / Register / Quên mật khẩu |
 | `client/src/components/Chat.tsx` | Panel chat trong game |
-| `client/src/components/Chat.css` | Style dark theme cho chat |
+| `client/src/components/MoveHistory.tsx` | Danh sách nước đi + click để xem lại thế cờ |
+| `client/src/components/GameHistory.tsx` | Trang lịch sử ván đấu online (fetch `/api/games/my`) |
 | `client/src/utils/sounds.ts` | Web Audio API: move/capture/check/win/lose/draw/tick/chat/drawOffer |
 
 ---
@@ -83,6 +91,8 @@ db.getScoreByUserId(userId): Score | null
 db.incrementScore(userId, field: 'wins' | 'losses' | 'draws'): void
 db.getLeaderboard(): {...}[]
 db.getUserWithScore(userId): {...} | null
+db.insertGame(game: Omit<GameRecord, 'id'>): number
+db.getGamesByUserId(userId: number): GameRecord[]
 ```
 
 Dữ liệu lưu tại `server/data/db.json`.
@@ -96,15 +106,12 @@ type View =
   | { name: 'auth' }
   | { name: 'lobby' }
   | { name: 'scoreboard' }
+  | { name: 'gameHistory' }
   | { name: 'ai'; difficulty: Difficulty; timeControl: number }
   | { name: 'waiting'; timeControl: number }
-  | { name: 'online'; roomId: string; myColor: Color; initialData: GameStartData };
-
-// GameStartData giờ có thêm timeControl và timeLeft từ server
-interface GameStartData {
-  board: any; turn: Color; players: any;
-  timeControl: number; timeLeft: { red: number; black: number };
-}
+  | { name: 'matchmaking'; timeControl: number }
+  | { name: 'online'; roomId: string; myColor: Color; initialData: GameStartData }
+  | { name: 'spectating'; roomId: string; initialData: any; initialMoves: any[] };
 ```
 
 ---
@@ -138,7 +145,7 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
 
 ---
 
-## Tính năng đã hoàn thành (2026-05-02)
+## Tính năng đã hoàn thành (2026-05-12)
 
 Tất cả tính năng đã được implement đầy đủ:
 
@@ -148,7 +155,13 @@ Tất cả tính năng đã được implement đầy đủ:
 - [x] UI đề nghị hòa — nút + overlay Accept/Decline + thông báo từ chối
 - [x] Theme bàn cờ — 4 màu (classic/dark/jade/blue), lưu localStorage
 - [x] Time control trong Lobby — ∞/5/10/15/30 phút
-- [x] `timeControl` thread qua toàn bộ flow: Lobby → App → WaitingRoom/AIGame → server
+- [x] Hoàn tác nước đi (AIGame) — snapshot lịch sử board + timer
+- [x] Đấu lại (OnlineGame) — rematch offer/accept/decline
+- [x] Copy link phòng — ?join=CODE auto-join
+- [x] Lịch sử nước đi — MoveHistory panel + board review (click nước bất kỳ)
+- [x] Chế độ xem ván (SpectatorGame) — khán giả real-time + replay
+- [x] Lưu lịch sử ván đấu — DB `games[]` + `GET /api/games/my` + GameHistory page
+- [x] Matchmaking — server `matchQueue`, `join_queue`/`leave_queue`, MatchmakingRoom component
 
 ## Không còn tính năng nào đang làm dở
 

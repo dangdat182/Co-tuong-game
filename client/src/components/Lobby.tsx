@@ -12,7 +12,10 @@ interface Props {
   onPlayAI: (difficulty: Difficulty, timeControl: number) => void;
   onCreateRoom: (timeControl: number) => void;
   onJoinRoom: (roomId: string) => void;
+  onWatchRoom: (roomId: string) => void;
+  onMatchmaking: (timeControl: number) => void;
   onShowScoreboard: () => void;
+  onShowGameHistory: () => void;
   onLogout: () => void;
 }
 
@@ -38,11 +41,13 @@ const THEME_OPTIONS: { label: string; value: BoardTheme; bg: string }[] = [
   { label: 'Lam',     value: 'blue',    bg: '#c8dff0' },
 ];
 
-export default function Lobby({ user, onPlayAI, onCreateRoom, onJoinRoom, onShowScoreboard, onLogout }: Props) {
+export default function Lobby({ user, onPlayAI, onCreateRoom, onJoinRoom, onWatchRoom, onMatchmaking, onShowScoreboard, onShowGameHistory, onLogout }: Props) {
   const [tab, setTab]         = useState<'home' | 'ai' | 'online'>('home');
   const [diff, setDiff]       = useState<Difficulty>('normal');
   const [roomInput, setRoomInput] = useState('');
   const [roomError, setRoomError] = useState('');
+  const [watchInput, setWatchInput] = useState('');
+  const [watchError, setWatchError] = useState('');
   const [timeControl, setTimeControl] = useState(0);
   const [theme, setTheme] = useState<BoardTheme>(
     () => (localStorage.getItem('board_theme') as BoardTheme) || 'classic',
@@ -58,6 +63,13 @@ export default function Lobby({ user, onPlayAI, onCreateRoom, onJoinRoom, onShow
     if (id.length !== 6) { setRoomError('Mã phòng phải gồm 6 ký tự'); return; }
     setRoomError('');
     onJoinRoom(id);
+  }
+
+  function handleWatch() {
+    const id = watchInput.trim().toUpperCase();
+    if (id.length !== 6) { setWatchError('Mã phòng phải gồm 6 ký tự'); return; }
+    setWatchError('');
+    onWatchRoom(id);
   }
 
   const settingsSection = (
@@ -105,6 +117,7 @@ export default function Lobby({ user, onPlayAI, onCreateRoom, onJoinRoom, onShow
         <div className="lobby-user">
           <span className="user-badge">👤 {user.username}</span>
           <button className="btn-ghost" onClick={onShowScoreboard}>🏆 Bảng xếp hạng</button>
+          <button className="btn-ghost" onClick={onShowGameHistory}>📚 Lịch sử ván</button>
           <button className="btn-ghost danger" onClick={onLogout}>Đăng xuất</button>
         </div>
       </header>
@@ -160,6 +173,12 @@ export default function Lobby({ user, onPlayAI, onCreateRoom, onJoinRoom, onShow
             {settingsSection}
             <div className="online-options" style={{ marginTop: 20 }}>
               <div className="online-card">
+                <h3>🔍 Tìm đối thủ</h3>
+                <p>Ghép cặp tự động với người chơi khác</p>
+                <button className="btn-primary" onClick={() => onMatchmaking(timeControl)}>Tìm đối thủ</button>
+              </div>
+              <div className="online-divider">HOẶC</div>
+              <div className="online-card">
                 <h3>🆕 Tạo phòng mới</h3>
                 <p>Tạo phòng và gửi mã cho bạn bè</p>
                 <button className="btn-primary" onClick={() => onCreateRoom(timeControl)}>Tạo phòng</button>
@@ -177,6 +196,20 @@ export default function Lobby({ user, onPlayAI, onCreateRoom, onJoinRoom, onShow
                 />
                 {roomError && <div className="form-error">{roomError}</div>}
                 <button className="btn-primary" onClick={handleJoin}>Vào phòng</button>
+              </div>
+              <div className="online-divider">HOẶC</div>
+              <div className="online-card">
+                <h3>👁 Xem ván đấu</h3>
+                <p>Nhập mã phòng để theo dõi ván đang diễn ra</p>
+                <input
+                  type="text" value={watchInput}
+                  onChange={e => { setWatchInput(e.target.value.toUpperCase()); setWatchError(''); }}
+                  placeholder="Mã phòng (6 ký tự)"
+                  maxLength={6}
+                  onKeyDown={e => e.key === 'Enter' && handleWatch()}
+                />
+                {watchError && <div className="form-error">{watchError}</div>}
+                <button className="btn-secondary" onClick={handleWatch}>Xem ván</button>
               </div>
             </div>
           </div>

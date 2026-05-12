@@ -15,6 +15,10 @@ Game cờ tướng web với chế độ chơi vs AI và chơi online real-time.
 - **Hoàn tác** (vs AI) — lùi 2 nước (nước bạn + nước AI) trong 1 click, phục hồi cả đồng hồ
 - **Đấu lại** (online) — sau ván kết thúc, gửi đề nghị đấu lại, đối thủ đồng ý thì reset ngay không cần tạo phòng mới
 - **Copy link phòng** — tạo link `?join=CODE` gửi bạn bè, click link là vào thẳng (tự đăng nhập xong auto-join)
+- **Lịch sử nước đi** — xem lại từng nước đã đi, click vào dòng bất kỳ để xem lại thế cờ tại thời điểm đó
+- **Chế độ xem ván** — khán giả nhập mã phòng để theo dõi ván đang diễn ra trong thời gian thực (read-only)
+- **Lưu lịch sử ván đấu** — tất cả ván online được lưu vào DB, xem lại từ menu "Lịch sử ván"
+- **Matchmaking** — tự động ghép cặp với người chơi đang chờ, không cần biết mã phòng
 
 ## Tech Stack
 
@@ -87,7 +91,7 @@ Mở trình duyệt tại **http://localhost:5173**
 Co-tuong-game/
 ├── client/              # React frontend (Vite, port 5173)
 │   └── src/
-│       ├── components/  # Board, Game, Lobby, Auth, Chat, Scoreboard
+│       ├── components/  # Board, Game, Lobby, Auth, Chat, Scoreboard, MoveHistory, GameHistory
 │       ├── game/        # Luật cờ tướng phía client
 │       └── utils/       # Âm thanh (Web Audio API)
 ├── server/              # Express backend (port 3001)
@@ -96,7 +100,7 @@ Co-tuong-game/
 │   │   ├── db/          # JSON file database
 │   │   ├── game/        # Luật cờ tướng phía server
 │   │   ├── middleware/  # JWT auth
-│   │   ├── routes/      # REST API (auth, scores, ai)
+│   │   ├── routes/      # REST API (auth, scores, ai, games)
 │   │   └── socket/      # Socket.IO handlers
 │   ├── data/            # db.json tự tạo khi chạy lần đầu (gitignored)
 │   └── .env.example     # Mẫu biến môi trường

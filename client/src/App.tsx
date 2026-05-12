@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import Auth from './components/Auth';
 import Lobby from './components/Lobby';
 import Scoreboard from './components/Scoreboard';
-import { AIGame, OnlineGame, WaitingRoom } from './components/Game';
+import { AIGame, OnlineGame, WaitingRoom, SpectatorGame, MatchmakingRoom } from './components/Game';
+import GameHistory from './components/GameHistory';
 import socket from './socket';
 import { Color } from './game/rules';
 import './App.css';
@@ -22,9 +23,12 @@ type View =
   | { name: 'auth' }
   | { name: 'lobby' }
   | { name: 'scoreboard' }
+  | { name: 'gameHistory' }
   | { name: 'ai'; difficulty: Difficulty; timeControl: number }
   | { name: 'waiting'; timeControl: number }
-  | { name: 'online'; roomId: string; myColor: Color; initialData: GameStartData };
+  | { name: 'matchmaking'; timeControl: number }
+  | { name: 'online'; roomId: string; myColor: Color; initialData: GameStartData }
+  | { name: 'spectating'; roomId: string; initialData: any; initialMoves: any[] };
 
 export default function App() {
   const [user, setUser]   = useState<User | null>(null);
@@ -98,6 +102,24 @@ export default function App() {
     }
   }
 
+  function handleWatchRoom(roomId: string) {
+    const doWatch = () => {
+      socket.emit('watch_room', { roomId: roomId.toUpperCase() });
+    };
+    socket.once('joined_as_spectator', (data: { roomId: string; room: any; moveHistory: any[] }) => {
+      setView({ name: 'spectating', roomId: data.roomId, initialData: data.room, initialMoves: data.moveHistory });
+    });
+    socket.once('error', (data: { message: string }) => {
+      alert(data.message);
+    });
+    if (socket.connected) {
+      doWatch();
+    } else {
+      socket.once('connect', doWatch);
+      socket.connect();
+    }
+  }
+
   if (!user) return <Auth onLogin={handleLogin} />;
 
   const lobby = (
@@ -107,7 +129,10 @@ export default function App() {
       onPlayAI={(d, tc) => setView({ name: 'ai', difficulty: d, timeControl: tc })}
       onCreateRoom={(tc) => setView({ name: 'waiting', timeControl: tc })}
       onJoinRoom={handleJoinRoom}
+      onWatchRoom={handleWatchRoom}
+      onMatchmaking={(tc) => setView({ name: 'matchmaking', timeControl: tc })}
       onShowScoreboard={() => setView({ name: 'scoreboard' })}
+      onShowGameHistory={() => setView({ name: 'gameHistory' })}
       onLogout={handleLogout}
     />
   );
@@ -121,6 +146,9 @@ export default function App() {
 
     case 'scoreboard':
       return <Scoreboard onBack={() => setView({ name: 'lobby' })} currentUser={user.username} />;
+
+    case 'gameHistory':
+      return <GameHistory token={token} currentUser={user.username} onBack={() => setView({ name: 'lobby' })} />;
 
     case 'ai':
       return (
@@ -146,6 +174,18 @@ export default function App() {
         />
       );
 
+    case 'matchmaking':
+      return (
+        <MatchmakingRoom
+          user={user}
+          timeControl={view.timeControl}
+          onGameStart={(roomId, myColor, data) =>
+            setView({ name: 'online', roomId, myColor, initialData: data })
+          }
+          onBack={() => setView({ name: 'lobby' })}
+        />
+      );
+
     case 'online':
       return (
         <OnlineGame
@@ -154,6 +194,16 @@ export default function App() {
           roomId={view.roomId}
           myColor={view.myColor}
           initialData={view.initialData}
+          onBack={() => setView({ name: 'lobby' })}
+        />
+      );
+
+    case 'spectating':
+      return (
+        <SpectatorGame
+          roomId={view.roomId}
+          initialData={view.initialData}
+          initialMoves={view.initialMoves}
           onBack={() => setView({ name: 'lobby' })}
         />
       );

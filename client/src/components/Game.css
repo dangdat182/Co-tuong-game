@@ -300,6 +300,30 @@
 /* Copy buttons row in WaitingRoom */
 .room-copy-buttons { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
 
+/* Spectator badge */
+.spectator-badge {
+  text-align: center;
+  padding: 6px 12px;
+  background: rgba(100,100,200,0.12);
+  border: 1px solid rgba(100,100,200,0.35);
+  border-radius: 8px;
+  color: #aabbff;
+  font-size: 13px;
+}
+
+/* Inline back-to-current button inside review message */
+.mh-inline-back {
+  background: none;
+  border: 1px solid rgba(80,80,200,0.45);
+  color: #aac0ff;
+  padding: 1px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.15s;
+}
+.mh-inline-back:hover { background: rgba(80,80,200,0.18); }
+
 /* Spinner */
 .spinner {
   width: 40px; height: 40px;
