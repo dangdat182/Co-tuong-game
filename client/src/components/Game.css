@@ -267,6 +267,39 @@
   background: rgba(0,0,0,0.6);
 }
 
+/* Undo button */
+.btn-undo {
+  padding: 10px;
+  background: rgba(100,150,200,0.1);
+  border: 1px solid rgba(100,150,200,0.4);
+  color: #aaccff;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+.btn-undo:hover:not(:disabled) { background: rgba(100,150,200,0.22); }
+.btn-undo:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* Rematch button */
+.btn-rematch {
+  padding: 10px 16px;
+  background: rgba(80,180,80,0.15);
+  border: 1px solid rgba(80,200,80,0.45);
+  color: #88ee88;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+.btn-rematch:hover { background: rgba(80,180,80,0.28); }
+
+/* Rematch offer overlay */
+.game-overlay.rematch-offer-overlay { background: rgba(0,0,0,0.6); }
+
+/* Copy buttons row in WaitingRoom */
+.room-copy-buttons { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
 /* Spinner */
 .spinner {
   width: 40px; height: 40px;

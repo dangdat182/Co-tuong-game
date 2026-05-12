@@ -23,6 +23,8 @@ interface Room {
   // draw
   drawOffer: Color | null;      // who has an outstanding offer
   drawOfferAt: number;
+  // rematch
+  rematchOffer: Color | null;
   // chat
   chat: ChatMsg[];
 }
@@ -50,6 +52,7 @@ export function setupSocketHandlers(io: Server) {
         status: 'waiting', moveHistory: [],
         timeControl: tc, timeLeft: { red: tc, black: tc }, lastMoveAt: 0,
         drawOffer: null, drawOfferAt: 0,
+        rematchOffer: null,
         chat: [],
       };
       rooms.set(roomId, room);
@@ -196,6 +199,56 @@ export function setupSocketHandlers(io: Server) {
       const chatMsg: ChatMsg = { username: player.username, message: msg, time: Date.now() };
       room.chat.push(chatMsg);
       io.to(room.id).emit('chat_message', chatMsg);
+    });
+
+    // ── Rematch ────────────────────────────────────────────────────────────
+    socket.on('offer_rematch', (data: { roomId: string }) => {
+      const room = rooms.get(data.roomId);
+      if (!room || room.status !== 'finished') return;
+      const color: Color | null =
+        room.players.red?.socketId   === socket.id ? 'red' :
+        room.players.black?.socketId === socket.id ? 'black' : null;
+      if (!color || room.rematchOffer === color) return;
+
+      const opp = color === 'red' ? room.players.black : room.players.red;
+      if (!opp || !io.sockets.sockets.get(opp.socketId)) {
+        socket.emit('error', { message: 'Đối thủ đã ngắt kết nối' }); return;
+      }
+      room.rematchOffer = color;
+      io.to(opp.socketId).emit('rematch_offered', { by: color });
+      socket.emit('rematch_offer_sent');
+    });
+
+    socket.on('respond_rematch', (data: { roomId: string; accept: boolean }) => {
+      const room = rooms.get(data.roomId);
+      if (!room || room.status !== 'finished') return;
+      const color: Color | null =
+        room.players.red?.socketId   === socket.id ? 'red' :
+        room.players.black?.socketId === socket.id ? 'black' : null;
+      if (!color || room.rematchOffer === color || room.rematchOffer === null) return;
+
+      if (data.accept) {
+        const redOk  = room.players.red  && io.sockets.sockets.get(room.players.red.socketId);
+        const blkOk  = room.players.black && io.sockets.sockets.get(room.players.black.socketId);
+        if (!redOk || !blkOk) {
+          socket.emit('error', { message: 'Đối thủ đã ngắt kết nối, không thể đấu lại' }); return;
+        }
+        room.board        = createInitialBoard();
+        room.turn         = 'red';
+        room.status       = 'playing';
+        room.winner       = null;
+        room.moveHistory  = [];
+        room.timeLeft     = { red: room.timeControl, black: room.timeControl };
+        room.lastMoveAt   = Date.now();
+        room.drawOffer    = null;
+        room.drawOfferAt  = 0;
+        room.rematchOffer = null;
+        io.to(room.id).emit('rematch_start', pub(room));
+      } else {
+        room.rematchOffer = null;
+        const offerer = color === 'red' ? room.players.black : room.players.red;
+        if (offerer) io.to(offerer.socketId).emit('rematch_declined');
+      }
     });
 
     // ── Leave / Disconnect ─────────────────────────────────────────────────

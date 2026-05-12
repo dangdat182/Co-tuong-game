@@ -30,6 +30,12 @@ export default function App() {
   const [user, setUser]   = useState<User | null>(null);
   const [token, setToken] = useState<string>('');
   const [view, setView]   = useState<View>({ name: 'auth' });
+  const [pendingJoin, setPendingJoin] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const room = params.get('join');
+    if (room) window.history.replaceState({}, '', window.location.pathname);
+    return room ? room.toUpperCase() : null;
+  });
 
   useEffect(() => {
     const savedToken = localStorage.getItem('token');
@@ -42,6 +48,15 @@ export default function App() {
       } catch { /* ignore malformed */ }
     }
   }, []);
+
+  // Auto-join khi mở link ?join=CODE
+  useEffect(() => {
+    if (user && pendingJoin) {
+      const roomId = pendingJoin;
+      setPendingJoin(null);
+      handleJoinRoom(roomId);
+    }
+  }, [user, pendingJoin]); // eslint-disable-line
 
   function handleLogin(u: User, t: string) {
     setUser(u); setToken(t);

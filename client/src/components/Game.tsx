@@ -27,6 +27,13 @@ interface AIGameProps {
   onBack: () => void;
 }
 
+interface BoardSnapshot {
+  board: BoardType;
+  lastMove: GameMove | null;
+  myTime: number;
+  aiTime: number;
+}
+
 export function AIGame({ user, token, difficulty, timeControl, onBack }: AIGameProps) {
   const [board, setBoard]       = useState<BoardType>(createInitialBoard());
   const [turn, setTurn]         = useState<Color>('red');
@@ -38,6 +45,7 @@ export function AIGame({ user, token, difficulty, timeControl, onBack }: AIGameP
   const [myTime, setMyTime]     = useState(timeControl > 0 ? timeControl : 0);
   const [aiTime, setAiTime]     = useState(timeControl > 0 ? timeControl : 0);
   const [muted, setMuted]       = useState(isMuted());
+  const [history, setHistory]   = useState<BoardSnapshot[]>([]);
   const myColor: Color = 'red';
   const aiColor: Color = 'black';
 
@@ -121,8 +129,22 @@ export function AIGame({ user, token, difficulty, timeControl, onBack }: AIGameP
     return () => clearTimeout(timeout);
   }, [turn, board, difficulty, status, checkGameOver, updateScore]); // eslint-disable-line
 
+  function handleUndo() {
+    if (history.length === 0 || aiThinking || status !== 'playing') return;
+    const snap = history[history.length - 1];
+    setHistory(h => h.slice(0, -1));
+    setBoard(snap.board);
+    setLastMove(snap.lastMove);
+    setMyTime(snap.myTime);
+    setAiTime(snap.aiTime);
+    setTurn(myColor);
+    setMessage('');
+    setSelected(null);
+  }
+
   function handleMove(from: Position, to: Position) {
     if (turn !== myColor || status !== 'playing' || aiThinking) return;
+    setHistory(h => [...h, { board, lastMove, myTime, aiTime }]);
     const captured = board[to[0]][to[1]];
     const newBoard = applyMove(board, { from, to });
     setBoard(newBoard);
@@ -144,6 +166,7 @@ export function AIGame({ user, token, difficulty, timeControl, onBack }: AIGameP
     setLastMove(null); setStatus('playing'); setMessage('');
     setMyTime(timeControl > 0 ? timeControl : 0);
     setAiTime(timeControl > 0 ? timeControl : 0);
+    setHistory([]);
   }
 
   const DIFF_LABEL: Record<Difficulty, string> = { easy: 'Dễ', normal: 'Bình thường', hard: 'Khó' };
@@ -223,6 +246,15 @@ export function AIGame({ user, token, difficulty, timeControl, onBack }: AIGameP
             <button className="btn-mute" onClick={() => setMuted(toggleMute())}>
               {muted ? '🔇 Tắt tiếng' : '🔊 Âm thanh'}
             </button>
+            {status === 'playing' && (
+              <button
+                className="btn-undo"
+                onClick={handleUndo}
+                disabled={history.length === 0 || aiThinking}
+              >
+                ↩ Hoàn tác
+              </button>
+            )}
             <button className="btn-resign" onClick={() => {
               setStatus('loss'); setMessage('Bạn đã đầu hàng.'); updateScore('loss'); sounds.lose();
             }}>
@@ -273,10 +305,13 @@ export function OnlineGame({ user, token, roomId, myColor, initialData, onBack }
     red:   initialData.timeLeft?.red   ?? 0,
     black: initialData.timeLeft?.black ?? 0,
   });
-  const [chatMsgs, setChatMsgs]         = useState<ChatMsg[]>([]);
-  const [drawOffered, setDrawOffered]   = useState(false);
+  const [chatMsgs, setChatMsgs]           = useState<ChatMsg[]>([]);
+  const [drawOffered, setDrawOffered]     = useState(false);
   const [drawOfferSent, setDrawOfferSent] = useState(false);
-  const [drawDeclined, setDrawDeclined] = useState(false);
+  const [drawDeclined, setDrawDeclined]   = useState(false);
+  const [rematchOffered, setRematchOffered]   = useState(false);
+  const [rematchSent, setRematchSent]         = useState(false);
+  const [rematchDeclined, setRematchDeclined] = useState(false);
   const [muted, setMuted]               = useState(isMuted());
 
   const timeControl = initialData.timeControl ?? 0;
@@ -361,6 +396,33 @@ export function OnlineGame({ user, token, roomId, myColor, initialData, onBack }
 
     socket.on('error', (data: any) => setErrorMsg(data.message ?? 'Lỗi'));
 
+    socket.on('rematch_offered', () => setRematchOffered(true));
+    socket.on('rematch_offer_sent', () => setRematchSent(true));
+    socket.on('rematch_declined', () => {
+      setRematchSent(false);
+      setRematchDeclined(true);
+      setTimeout(() => setRematchDeclined(false), 3000);
+    });
+    socket.on('rematch_start', (data: any) => {
+      boardRef.current = data.board;
+      setBoard(data.board);
+      setTurn(data.turn);
+      setGameStatus('playing');
+      setWinner(null);
+      setEndReason('');
+      setSelected(null);
+      setLastMove(null);
+      setInCheck(false);
+      setErrorMsg('');
+      setTimeLeft({ red: data.timeLeft?.red ?? 0, black: data.timeLeft?.black ?? 0 });
+      setRematchOffered(false);
+      setRematchSent(false);
+      setRematchDeclined(false);
+      setDrawOffered(false);
+      setDrawOfferSent(false);
+      scoreUpdated.current = false;
+    });
+
     return () => {
       socket.off('move_made');
       socket.off('game_over');
@@ -370,6 +432,10 @@ export function OnlineGame({ user, token, roomId, myColor, initialData, onBack }
       socket.off('draw_declined');
       socket.off('chat_message');
       socket.off('error');
+      socket.off('rematch_offered');
+      socket.off('rematch_offer_sent');
+      socket.off('rematch_declined');
+      socket.off('rematch_start');
       if (leavingRef.current) {
         socket.emit('leave_room', { roomId });
         socket.disconnect();
@@ -416,6 +482,13 @@ export function OnlineGame({ user, token, roomId, myColor, initialData, onBack }
   function handleRespondDraw(accept: boolean) {
     setDrawOffered(false);
     socket.emit('respond_draw', { roomId, accept });
+  }
+
+  function handleOfferRematch() { socket.emit('offer_rematch', { roomId }); }
+
+  function handleRespondRematch(accept: boolean) {
+    setRematchOffered(false);
+    socket.emit('respond_rematch', { roomId, accept });
   }
 
   const colorLabel = myColor === 'red' ? 'Quân Đỏ' : 'Quân Đen';
@@ -466,14 +539,38 @@ export function OnlineGame({ user, token, roomId, myColor, initialData, onBack }
             </div>
           )}
           {gameStatus === 'finished' && (
-            <div className={`game-overlay ${winner === myColor ? 'win' : winner ? 'loss' : 'draw'}`}>
-              <div className="overlay-content">
-                <div className="overlay-icon">{winner === myColor ? '🎉' : winner ? '😞' : '🤝'}</div>
-                <h2>{winner === myColor ? 'Chiến thắng!' : winner ? 'Thất bại!' : 'Hòa!'}</h2>
-                <p>{endReason}</p>
-                <button className="btn-secondary" onClick={leaveGame}>Về sảnh</button>
+            rematchOffered ? (
+              <div className="game-overlay rematch-offer-overlay">
+                <div className="overlay-content">
+                  <div className="overlay-icon">🔄</div>
+                  <h2>Đề nghị đấu lại</h2>
+                  <p>Đối thủ muốn chơi ván khác</p>
+                  <div className="overlay-buttons">
+                    <button className="btn-primary"   onClick={() => handleRespondRematch(true)}>Đồng ý</button>
+                    <button className="btn-secondary" onClick={() => handleRespondRematch(false)}>Từ chối</button>
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className={`game-overlay ${winner === myColor ? 'win' : winner ? 'loss' : 'draw'}`}>
+                <div className="overlay-content">
+                  <div className="overlay-icon">{winner === myColor ? '🎉' : winner ? '😞' : '🤝'}</div>
+                  <h2>{winner === myColor ? 'Chiến thắng!' : winner ? 'Thất bại!' : 'Hòa!'}</h2>
+                  <p>{endReason}</p>
+                  <div className="overlay-buttons">
+                    {!rematchSent ? (
+                      <button className="btn-rematch" onClick={handleOfferRematch}>🔄 Đấu lại</button>
+                    ) : (
+                      <span className="draw-status-msg">Đang chờ đối thủ...</span>
+                    )}
+                    <button className="btn-secondary" onClick={leaveGame}>Về sảnh</button>
+                  </div>
+                  {rematchDeclined && (
+                    <div className="draw-status-msg declined">Đối thủ từ chối đấu lại</div>
+                  )}
+                </div>
+              </div>
+            )
           )}
           <Board
             board={board}
@@ -593,11 +690,16 @@ export function WaitingRoom({ user, timeControl, onGameStart, onBack }: WaitingR
               <div className="room-display">
                 <div className="room-label">Mã phòng của bạn:</div>
                 <div className="room-code-big">{roomId}</div>
-                <button className="btn-copy" onClick={() => navigator.clipboard.writeText(roomId)}>
-                  📋 Sao chép
-                </button>
+                <div className="room-copy-buttons">
+                  <button className="btn-copy" onClick={() => navigator.clipboard.writeText(roomId)}>
+                    📋 Sao chép mã
+                  </button>
+                  <button className="btn-copy" onClick={() => navigator.clipboard.writeText(`${window.location.origin}?join=${roomId}`)}>
+                    🔗 Copy link
+                  </button>
+                </div>
               </div>
-              <p className="room-hint">Gửi mã này cho bạn bè để họ tham gia</p>
+              <p className="room-hint">Gửi mã hoặc link cho bạn bè để họ tham gia</p>
             </>
           ) : (
             <><div className="spinner" /><p>Đang tạo phòng...</p></>
