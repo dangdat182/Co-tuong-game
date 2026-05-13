@@ -2,7 +2,7 @@ services:
   - type: web
     name: co-tuong-game
     runtime: node
-    buildCommand: npm run install:all && npm run build
+    buildCommand: npm_config_production=false npm run install:all && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
