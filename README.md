@@ -142,9 +142,97 @@ npx kill-port 3001 5173
 
 ---
 
-## Lưu ý khi deploy lên production
+## Deploy lên Internet (có tên miền thật)
 
-- Đặt `JWT_SECRET` là chuỗi ngẫu nhiên mạnh (tối thiểu 32 ký tự)
-- Thư mục `server/data/` cần có quyền ghi (lưu file `db.json`)
-- Cập nhật CORS origin trong `server/src/index.ts` theo domain thực tế
-- Build trước khi chạy: `npm run build`
+Game được thiết kế để **1 server duy nhất** phục vụ cả API lẫn giao diện. Chỉ cần deploy lên 1 nơi là xong.
+
+---
+
+### Cách 1 — Render (khuyến nghị, miễn phí)
+
+> **Render** là platform dễ nhất để deploy Node.js + Socket.IO. Free tier đủ dùng cho demo/cá nhân.
+
+#### Bước 1: Tạo tài khoản và kết nối GitHub
+
+1. Vào [render.com](https://render.com) → **Sign Up** (dùng GitHub để đăng nhập nhanh)
+2. Dashboard → **New** → **Web Service**
+3. Chọn repo `Co-tuong-game` từ GitHub
+
+#### Bước 2: Cấu hình Web Service
+
+| Trường | Giá trị |
+|---|---|
+| **Name** | `co-tuong-game` (hoặc tên bạn muốn) |
+| **Runtime** | `Node` |
+| **Build Command** | `npm run install:all && npm run build` |
+| **Start Command** | `npm start` |
+| **Instance Type** | `Free` |
+
+#### Bước 3: Thêm biến môi trường
+
+Trong tab **Environment**, thêm:
+
+| Key | Value |
+|---|---|
+| `NODE_ENV` | `production` |
+| `JWT_SECRET` | *(chuỗi ngẫu nhiên — xem hướng dẫn bên dưới)* |
+
+> Tạo JWT_SECRET bằng lệnh:
+> ```bash
+> node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+> ```
+
+#### Bước 4: Deploy
+
+Click **Create Web Service** → Render tự build và deploy. Sau ~3–5 phút bạn sẽ có URL dạng:
+
+```
+https://co-tuong-game.onrender.com
+```
+
+#### Gắn tên miền thật
+
+1. Mua domain tại [Namecheap](https://namecheap.com) hoặc [Porkbun](https://porkbun.com) (~$10–15/năm cho `.com`)
+2. Trong Render: tab **Settings** → **Custom Domains** → **Add Custom Domain**
+3. Render cung cấp record DNS → vào Namecheap thêm **CNAME** record trỏ về Render
+4. Đợi ~10–30 phút cho DNS propagate
+
+---
+
+### Cách 2 — Railway
+
+> Railway có free tier giới hạn ~$5 credit/tháng, đủ cho app nhỏ.
+
+1. Vào [railway.app](https://railway.app) → **Deploy from GitHub repo**
+2. Chọn repo → Railway tự detect Node.js
+3. Thêm env vars: `NODE_ENV=production`, `JWT_SECRET=...`
+4. Railway tự set `PORT` — không cần thêm
+5. Domain: tab **Settings** → **Domains** → thêm custom domain
+
+---
+
+### Lưu ý về dữ liệu (Database)
+
+Game dùng file JSON (`server/data/db.json`) để lưu dữ liệu. Trên **Render Free**, file này **không persist khi server restart** (mất dữ liệu ~mỗi 15 phút inactive).
+
+**Giải pháp:**
+- **Render Disk** ($7/tháng): thêm persistent disk trong Dashboard → Disks, mount tại `/opt/render/project/src/server/data`
+- **Railway**: dữ liệu persist theo mặc định (không bị reset khi restart, chỉ mất khi redeploy)
+- Hoặc sau này nâng cấp lên PostgreSQL/MongoDB miễn phí (Neon, MongoDB Atlas)
+
+---
+
+### Kiến trúc production
+
+```
+Internet
+    │
+    ▼
+Render/Railway
+    │  (một server duy nhất, port $PORT)
+    ├── /api/*       → Express API (auth, scores, AI, games)
+    ├── /socket.io   → Socket.IO (multiplayer real-time)
+    └── /*           → React SPA (client/dist/)
+```
+
+Trong production, Express tự serve giao diện React — không cần Vite server riêng.

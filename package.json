@@ -4,7 +4,11 @@
   "scripts": {
     "dev": "concurrently \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
     "install:all": "npm install && npm install --prefix server && npm install --prefix client",
-    "build": "npm run build --prefix server && npm run build --prefix client"
+    "build": "npm --prefix server run build && npm --prefix client run build",
+    "start": "node server/dist/index.js"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
