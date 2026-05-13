@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './Lobby.css';
 
 type Difficulty = 'easy' | 'normal' | 'hard';
@@ -9,7 +9,7 @@ interface User { id: number; username: string; }
 interface Props {
   user: User;
   token: string;
-  onPlayAI: (difficulty: Difficulty, timeControl: number) => void;
+  onPlayAI: (difficulty: Difficulty, timeControl: number, myColor: 'red' | 'black' | 'random') => void;
   onCreateRoom: (timeControl: number) => void;
   onJoinRoom: (roomId: string) => void;
   onWatchRoom: (roomId: string) => void;
@@ -42,9 +42,10 @@ const THEME_OPTIONS: { label: string; value: BoardTheme; bg: string }[] = [
   { label: 'Trùng Thiên', value: 'blue',  bg: '#5090d0' },
 ];
 
-export default function Lobby({ user, onPlayAI, onCreateRoom, onJoinRoom, onWatchRoom, onMatchmaking, onShowScoreboard, onShowGameHistory, onLogout }: Props) {
+export default function Lobby({ user, token, onPlayAI, onCreateRoom, onJoinRoom, onWatchRoom, onMatchmaking, onShowScoreboard, onShowGameHistory, onLogout }: Props) {
   const [tab, setTab]         = useState<'home' | 'ai' | 'online'>('home');
   const [diff, setDiff]       = useState<Difficulty>('normal');
+  const [aiColor, setAiColor] = useState<'red' | 'black' | 'random'>('random');
   const [roomInput, setRoomInput] = useState('');
   const [roomError, setRoomError] = useState('');
   const [watchInput, setWatchInput] = useState('');
@@ -53,6 +54,14 @@ export default function Lobby({ user, onPlayAI, onCreateRoom, onJoinRoom, onWatc
   const [theme, setTheme] = useState<BoardTheme>(
     () => (localStorage.getItem('board_theme') as BoardTheme) || 'dark',
   );
+  const [myStats, setMyStats] = useState<{ wins: number; losses: number; draws: number } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/scores/me', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setMyStats({ wins: data.wins, losses: data.losses, draws: data.draws }); })
+      .catch(() => {});
+  }, [token]);
 
   function handleTheme(t: BoardTheme) {
     setTheme(t);
@@ -120,6 +129,13 @@ export default function Lobby({ user, onPlayAI, onCreateRoom, onJoinRoom, onWatc
         </div>
         <div className="lobby-user">
           <span className="user-badge">👤 {user.username}</span>
+          {myStats !== null && (
+            <div className="header-stats">
+              <span className="hstat win">{myStats.wins}W</span>
+              <span className="hstat draw">{myStats.draws}D</span>
+              <span className="hstat loss">{myStats.losses}L</span>
+            </div>
+          )}
           <button className="btn-ghost" onClick={onShowScoreboard}>🏆 Bảng xếp hạng</button>
           <button className="btn-ghost" onClick={onShowGameHistory}>📚 Lịch sử ván</button>
           <button className="btn-ghost danger" onClick={onLogout}>Đăng xuất</button>
@@ -168,8 +184,28 @@ export default function Lobby({ user, onPlayAI, onCreateRoom, onJoinRoom, onWatc
                 </div>
               ))}
             </div>
+            <div className="lobby-settings" style={{ marginTop: 12 }}>
+              <div className="settings-group">
+                <div className="settings-label">♟ Màu quân của bạn:</div>
+                <div className="time-pills">
+                  {([
+                    { value: 'red',    label: '🔴 Quân Đỏ' },
+                    { value: 'black',  label: '⚫ Quân Đen' },
+                    { value: 'random', label: '🎲 Ngẫu nhiên' },
+                  ] as const).map(opt => (
+                    <button
+                      key={opt.value}
+                      className={`time-pill ${aiColor === opt.value ? 'selected' : ''}`}
+                      onClick={() => setAiColor(opt.value)}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
             {settingsSection}
-            <button className="btn-primary" style={{ marginTop: 16 }} onClick={() => onPlayAI(diff, timeControl)}>
+            <button className="btn-primary" style={{ marginTop: 16 }} onClick={() => onPlayAI(diff, timeControl, aiColor)}>
               Bắt đầu chơi
             </button>
           </div>

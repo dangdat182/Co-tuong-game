@@ -24,7 +24,7 @@ type View =
   | { name: 'lobby' }
   | { name: 'scoreboard' }
   | { name: 'gameHistory' }
-  | { name: 'ai'; difficulty: Difficulty; timeControl: number }
+  | { name: 'ai'; difficulty: Difficulty; timeControl: number; myColor: Color }
   | { name: 'waiting'; timeControl: number }
   | { name: 'matchmaking'; timeControl: number }
   | { name: 'online'; roomId: string; myColor: Color; initialData: GameStartData }
@@ -126,7 +126,10 @@ export default function App() {
     <Lobby
       user={user}
       token={token}
-      onPlayAI={(d, tc) => setView({ name: 'ai', difficulty: d, timeControl: tc })}
+      onPlayAI={(d, tc, color) => {
+          const myColor: Color = color === 'random' ? (Math.random() < 0.5 ? 'red' : 'black') : color as Color;
+          setView({ name: 'ai', difficulty: d, timeControl: tc, myColor });
+        }}
       onCreateRoom={(tc) => setView({ name: 'waiting', timeControl: tc })}
       onJoinRoom={handleJoinRoom}
       onWatchRoom={handleWatchRoom}
@@ -157,6 +160,7 @@ export default function App() {
           token={token}
           difficulty={view.difficulty}
           timeControl={view.timeControl}
+          myColor={view.myColor}
           onBack={() => setView({ name: 'lobby' })}
         />
       );

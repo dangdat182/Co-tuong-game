@@ -35,9 +35,10 @@ interface Props {
   lastMove?: { from: Position; to: Position } | null;
   inCheck?: boolean;
   theme?: BoardTheme;
+  hintMove?: { from: Position; to: Position } | null;
 }
 
-export default function Board({ board, flipped, selected, onSelect, onMove, myColor, disabled, lastMove, inCheck, theme }: Props) {
+export default function Board({ board, flipped, selected, onSelect, onMove, myColor, disabled, lastMove, inCheck, theme, hintMove }: Props) {
   const themeKey: BoardTheme = theme ?? ((localStorage.getItem('board_theme') as BoardTheme) || 'dark');
   const colors = THEME_COLORS[themeKey] ?? THEME_COLORS.dark;
 
@@ -62,11 +63,13 @@ export default function Board({ board, flipped, selected, onSelect, onMove, myCo
     else { onSelect(null); }
   }
 
-  const isSelected = (r: number, c: number) => selected ? selected[0] === r && selected[1] === c : false;
-  const isLegal    = (r: number, c: number) => legalMoves.some(([lr, lc]) => lr === r && lc === c);
-  const isLastMove = (r: number, c: number) =>
+  const isSelected  = (r: number, c: number) => selected ? selected[0] === r && selected[1] === c : false;
+  const isLegal     = (r: number, c: number) => legalMoves.some(([lr, lc]) => lr === r && lc === c);
+  const isLastMove  = (r: number, c: number) =>
     lastMove ? (lastMove.from[0] === r && lastMove.from[1] === c) ||
                (lastMove.to[0]   === r && lastMove.to[1]   === c) : false;
+  const isHintFrom  = (r: number, c: number) => !!hintMove && hintMove.from[0] === r && hintMove.from[1] === c;
+  const isHintTo    = (r: number, c: number) => !!hintMove && hintMove.to[0]   === r && hintMove.to[1]   === c;
 
   function generalPos(color: 'red' | 'black'): [number, number] | null {
     for (let r = 0; r < 10; r++)
@@ -90,11 +93,27 @@ export default function Board({ board, flipped, selected, onSelect, onMove, myCo
       const last  = isLastMove(row, col);
       const check = checkKingPos ? checkKingPos[0] === row && checkKingPos[1] === col : false;
 
+      const hintFrom = isHintFrom(row, col);
+      const hintTo   = isHintTo(row, col);
+
       cells.push(
         <g key={`${dRow}-${dCol}`} onClick={() => handleCellClick(dRow, dCol)} style={{ cursor: disabled ? 'default' : 'pointer' }}>
           {last && (
             <rect x={x - CELL/2} y={y - CELL/2} width={CELL} height={CELL}
               fill={isDark ? 'rgba(60,130,255,0.12)' : 'rgba(255,215,0,0.15)'} rx={3} />
+          )}
+          {hintFrom && (
+            <rect x={x - CELL/2} y={y - CELL/2} width={CELL} height={CELL}
+              fill="rgba(255,210,0,0.18)" rx={3}
+              stroke="rgba(255,210,0,0.75)" strokeWidth={2} strokeDasharray="5,3" />
+          )}
+          {hintTo && !piece && (
+            <circle cx={x} cy={y} r={11}
+              fill="rgba(255,210,0,0.35)" stroke="rgba(255,210,0,0.8)" strokeWidth={2} strokeDasharray="4,2" />
+          )}
+          {hintTo && piece && (
+            <circle cx={x} cy={y} r={CELL/2 - 1} fill="none"
+              stroke="rgba(255,210,0,0.85)" strokeWidth={2.5} strokeDasharray="5,3" />
           )}
           {sel && (
             <rect x={x - CELL/2} y={y - CELL/2} width={CELL} height={CELL}

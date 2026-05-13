@@ -3,8 +3,8 @@ import Board from './Board';
 import Chat, { ChatMsg } from './Chat';
 import MoveHistory, { MoveRecord, buildMoveRecord } from './MoveHistory';
 import {
-  Board as BoardType, Position, GameMove, Color,
-  createInitialBoard, applyMove, isInCheck, getLegalMoves,
+  Board as BoardType, Position, GameMove, Color, Piece,
+  createInitialBoard, applyMove, isInCheck, getLegalMoves, getPieceChar,
 } from '../game/rules';
 import socket from '../socket';
 import { sounds, isMuted, toggleMute } from '../utils/sounds';
@@ -25,6 +25,7 @@ interface AIGameProps {
   token: string;
   difficulty: Difficulty;
   timeControl: number; // seconds per side, 0 = unlimited
+  myColor: Color;
   onBack: () => void;
 }
 
@@ -33,9 +34,26 @@ interface BoardSnapshot {
   lastMove: GameMove | null;
   myTime: number;
   aiTime: number;
+  capturedByMe: Piece[];
+  capturedByAI: Piece[];
 }
 
-export function AIGame({ user, token, difficulty, timeControl, onBack }: AIGameProps) {
+function CapturedRow({ pieces, label }: { pieces: Piece[]; label: string }) {
+  if (pieces.length === 0) return null;
+  return (
+    <div className="captured-row">
+      <span className="captured-label">{label}</span>
+      <div className="captured-pieces">
+        {pieces.map((p, i) => (
+          <span key={i} className={`captured-piece ${p.color}`}>{getPieceChar(p)}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function AIGame({ user, token, difficulty, timeControl, myColor, onBack }: AIGameProps) {
+  const aiColor: Color = myColor === 'red' ? 'black' : 'red';
   const [board, setBoard]       = useState<BoardType>(createInitialBoard());
   const [turn, setTurn]         = useState<Color>('red');
   const [selected, setSelected] = useState<Position | null>(null);
@@ -49,8 +67,10 @@ export function AIGame({ user, token, difficulty, timeControl, onBack }: AIGameP
   const [history, setHistory]       = useState<BoardSnapshot[]>([]);
   const [moveRecords, setMoveRecords] = useState<MoveRecord[]>([]);
   const [reviewIndex, setReviewIndex] = useState<number | null>(null);
-  const myColor: Color = 'red';
-  const aiColor: Color = 'black';
+  const [capturedByMe, setCapturedByMe] = useState<Piece[]>([]);
+  const [capturedByAI, setCapturedByAI] = useState<Piece[]>([]);
+  const [hint, setHint]         = useState<GameMove | null>(null);
+  const [hintLoading, setHintLoading] = useState(false);
 
   const updateScore = useCallback(async (result: 'win' | 'loss' | 'draw') => {
     try {
@@ -112,17 +132,18 @@ export function AIGame({ user, token, difficulty, timeControl, onBack }: AIGameP
         const data = await res.json();
         if (data.move) {
           const captured = board[data.move.to[0]][data.move.to[1]];
+          if (captured) setCapturedByAI(c => [...c, captured]);
           const newBoard = applyMove(board, data.move);
           setMoveRecords(r => [...r, buildMoveRecord(board, newBoard, data.move, aiColor)]);
           setReviewIndex(null);
           setBoard(newBoard);
           setLastMove(data.move);
-          setTurn('red');
+          setTurn(myColor);
           if (captured) sounds.capture(); else sounds.move();
-          if (checkGameOver(newBoard, 'red')) {
+          if (checkGameOver(newBoard, myColor)) {
             setStatus('loss'); setMessage('Máy thắng! Bạn bị chiếu hết.');
             updateScore('loss'); sounds.lose();
-          } else if (isInCheck(newBoard, 'red')) {
+          } else if (isInCheck(newBoard, myColor)) {
             setMessage('Bạn đang bị chiếu!'); sounds.check();
           } else {
             setMessage('');
@@ -138,33 +159,56 @@ export function AIGame({ user, token, difficulty, timeControl, onBack }: AIGameP
     if (history.length === 0 || aiThinking || status !== 'playing') return;
     const snap = history[history.length - 1];
     setHistory(h => h.slice(0, -1));
-    // Remove last 2 records (player move + AI move), or 1 if AI didn't respond yet
     setMoveRecords(r => r.length >= 2 ? r.slice(0, -2) : r.slice(0, -1));
     setReviewIndex(null);
     setBoard(snap.board);
     setLastMove(snap.lastMove);
     setMyTime(snap.myTime);
     setAiTime(snap.aiTime);
+    setCapturedByMe(snap.capturedByMe);
+    setCapturedByAI(snap.capturedByAI);
     setTurn(myColor);
     setMessage('');
     setSelected(null);
+    setHint(null);
+  }
+
+  async function handleHint() {
+    if (hintLoading || turn !== myColor || status !== 'playing' || aiThinking) return;
+    setHintLoading(true);
+    setHint(null);
+    try {
+      const res = await fetch('/api/ai/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ board, color: myColor, difficulty }),
+      });
+      const data = await res.json();
+      if (data.move) {
+        setHint(data.move);
+        setTimeout(() => setHint(null), 5000);
+      }
+    } catch { /* ignore */ }
+    finally { setHintLoading(false); }
   }
 
   function handleMove(from: Position, to: Position) {
     if (turn !== myColor || status !== 'playing' || aiThinking) return;
     if (reviewIndex !== null) { setReviewIndex(null); return; } // exit review on move
-    setHistory(h => [...h, { board, lastMove, myTime, aiTime }]);
+    setHistory(h => [...h, { board, lastMove, myTime, aiTime, capturedByMe, capturedByAI }]);
     const captured = board[to[0]][to[1]];
+    if (captured) setCapturedByMe(c => [...c, captured]);
     const newBoard = applyMove(board, { from, to });
     setMoveRecords(r => [...r, buildMoveRecord(board, newBoard, { from, to }, myColor)]);
     setBoard(newBoard);
     setLastMove({ from, to });
-    setTurn('black');
+    setHint(null);
+    setTurn(aiColor);
     if (captured) sounds.capture(); else sounds.move();
-    if (checkGameOver(newBoard, 'black')) {
+    if (checkGameOver(newBoard, aiColor)) {
       setStatus('win'); setMessage('Bạn thắng! Chiếu hết!');
       updateScore('win'); sounds.win();
-    } else if (isInCheck(newBoard, 'black')) {
+    } else if (isInCheck(newBoard, aiColor)) {
       setMessage('Máy đang bị chiếu!'); sounds.check();
     } else {
       setMessage('');
@@ -177,6 +221,8 @@ export function AIGame({ user, token, difficulty, timeControl, onBack }: AIGameP
     setMyTime(timeControl > 0 ? timeControl : 0);
     setAiTime(timeControl > 0 ? timeControl : 0);
     setHistory([]); setMoveRecords([]); setReviewIndex(null);
+    setCapturedByMe([]); setCapturedByAI([]);
+    setHint(null);
   }
 
   const DIFF_LABEL: Record<Difficulty, string> = { easy: 'Tân Thủ', normal: 'Kiếm Khách', hard: 'Tông Sư' };
@@ -191,7 +237,7 @@ export function AIGame({ user, token, difficulty, timeControl, onBack }: AIGameP
               <div className="player-icon">🤖</div>
               <div>
                 <div className="player-name">Máy AI</div>
-                <div className="player-sub">{DIFF_LABEL[difficulty]}</div>
+                <div className="player-sub">{DIFF_LABEL[difficulty]} · {aiColor === 'red' ? 'Quân Đỏ' : 'Quân Đen'}</div>
               </div>
               {turn === aiColor && status === 'playing' && (
                 <div className="turn-indicator ai-turn">
@@ -204,6 +250,7 @@ export function AIGame({ user, token, difficulty, timeControl, onBack }: AIGameP
                 {formatTime(aiTime)}
               </div>
             )}
+            <CapturedRow pieces={capturedByAI} label="Ăn được" />
           </div>
         </aside>
 
@@ -224,6 +271,7 @@ export function AIGame({ user, token, difficulty, timeControl, onBack }: AIGameP
           )}
           <Board
             board={reviewIndex !== null ? moveRecords[reviewIndex].board : board}
+            flipped={myColor === 'black'}
             selected={reviewIndex !== null ? null : selected}
             onSelect={reviewIndex !== null ? () => {} : setSelected}
             onMove={handleMove}
@@ -231,6 +279,7 @@ export function AIGame({ user, token, difficulty, timeControl, onBack }: AIGameP
             disabled={turn !== myColor || status !== 'playing' || aiThinking || reviewIndex !== null}
             lastMove={reviewIndex !== null ? moveRecords[reviewIndex].move : lastMove}
             inCheck={reviewIndex === null && isInCheck(board, myColor) && turn === myColor}
+            hintMove={reviewIndex === null ? hint : null}
           />
           {reviewIndex !== null && (
             <div className="game-msg" style={{ background: 'rgba(80,80,200,0.15)', color: '#aac0ff', borderColor: 'rgba(80,80,200,0.35)' }}>
@@ -247,7 +296,7 @@ export function AIGame({ user, token, difficulty, timeControl, onBack }: AIGameP
               <div className="player-icon">👤</div>
               <div>
                 <div className="player-name">{user.username}</div>
-                <div className="player-sub">Quân Đỏ</div>
+                <div className="player-sub">{myColor === 'red' ? 'Quân Đỏ' : 'Quân Đen'}</div>
               </div>
               {turn === myColor && status === 'playing' && (
                 <div className="turn-indicator my-turn">Lượt của bạn</div>
@@ -258,9 +307,19 @@ export function AIGame({ user, token, difficulty, timeControl, onBack }: AIGameP
                 {formatTime(myTime)}
               </div>
             )}
+            <CapturedRow pieces={capturedByMe} label="Ăn được" />
             <button className="btn-mute" onClick={() => setMuted(toggleMute())}>
               {muted ? '🔇 Tắt tiếng' : '🔊 Âm thanh'}
             </button>
+            {status === 'playing' && (
+              <button
+                className="btn-hint"
+                onClick={handleHint}
+                disabled={hintLoading || turn !== myColor || aiThinking}
+              >
+                {hintLoading ? '💡 Đang tính...' : '💡 Gợi ý nước đi'}
+              </button>
+            )}
             {status === 'playing' && (
               <button
                 className="btn-undo"
@@ -336,6 +395,8 @@ export function OnlineGame({ user, token, roomId, myColor, initialData, onBack }
   const [muted, setMuted]               = useState(isMuted());
   const [moveRecords, setMoveRecords]   = useState<MoveRecord[]>([]);
   const [reviewIndex, setReviewIndex]   = useState<number | null>(null);
+  const [capturedByMe, setCapturedByMe] = useState<Piece[]>([]);
+  const [capturedByOpp, setCapturedByOpp] = useState<Piece[]>([]);
 
   const timeControl = initialData.timeControl ?? 0;
   const boardRef    = useRef<BoardType>(initialData.board);
@@ -361,8 +422,12 @@ export function OnlineGame({ user, token, roomId, myColor, initialData, onBack }
 
     socket.on('move_made', (data: any) => {
       const prevBoard = boardRef.current;
-      const wasCaptured = !!prevBoard[data.move.to[0]]?.[data.move.to[1]];
+      const capturedPiece = prevBoard[data.move.to[0]]?.[data.move.to[1]] ?? null;
       const mover: Color = data.turn === 'red' ? 'black' : 'red'; // who just moved
+      if (capturedPiece) {
+        if (mover === myColor) setCapturedByMe(c => [...c, capturedPiece]);
+        else setCapturedByOpp(c => [...c, capturedPiece]);
+      }
       setMoveRecords(r => [...r, buildMoveRecord(prevBoard, data.board, data.move, mover)]);
       setReviewIndex(null);
       boardRef.current = data.board;
@@ -372,7 +437,7 @@ export function OnlineGame({ user, token, roomId, myColor, initialData, onBack }
       const inCheckNow = data.inCheck && data.turn === myColor;
       setInCheck(inCheckNow);
       if (data.timeLeft) setTimeLeft(data.timeLeft);
-      if (wasCaptured) sounds.capture(); else sounds.move();
+      if (capturedPiece) sounds.capture(); else sounds.move();
       if (inCheckNow) sounds.check();
     });
 
@@ -449,6 +514,8 @@ export function OnlineGame({ user, token, roomId, myColor, initialData, onBack }
       setDrawOfferSent(false);
       setMoveRecords([]);
       setReviewIndex(null);
+      setCapturedByMe([]);
+      setCapturedByOpp([]);
       scoreUpdated.current = false;
     });
 
@@ -543,6 +610,7 @@ export function OnlineGame({ user, token, roomId, myColor, initialData, onBack }
                 {formatTime(timeLeft[oppColor])}
               </div>
             )}
+            <CapturedRow pieces={capturedByOpp} label="Ăn được" />
             <Chat
               messages={chatMsgs}
               onSend={(msg) => socket.emit('chat_message', { roomId, message: msg })}
@@ -641,6 +709,7 @@ export function OnlineGame({ user, token, roomId, myColor, initialData, onBack }
                 {formatTime(timeLeft[myColor])}
               </div>
             )}
+            <CapturedRow pieces={capturedByMe} label="Ăn được" />
             <button className="btn-mute" onClick={() => setMuted(toggleMute())}>
               {muted ? '🔇 Tắt tiếng' : '🔊 Âm thanh'}
             </button>

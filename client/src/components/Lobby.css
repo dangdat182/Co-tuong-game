@@ -346,3 +346,20 @@
   border: 1px solid rgba(255,255,255,0.15);
   flex-shrink: 0;
 }
+
+/* Header stats (W/D/L) */
+.header-stats {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.hstat {
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 0.3px;
+}
+.hstat.win  { background: rgba(68,204,102,0.12); color: #66ee88; border: 1px solid rgba(68,204,102,0.3); }
+.hstat.draw { background: rgba(74,128,204,0.12); color: #88aaee; border: 1px solid rgba(74,128,204,0.3); }
+.hstat.loss { background: rgba(204,68,68,0.1);  color: #ee8888; border: 1px solid rgba(204,68,68,0.3); }
