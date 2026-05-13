@@ -19,11 +19,12 @@ interface Props {
   onLogout: () => void;
 }
 
-const DIFF_LABELS: Record<Difficulty, string> = { easy: 'Dễ', normal: 'Bình thường', hard: 'Khó' };
+const DIFF_LABELS: Record<Difficulty, string> = { easy: 'Tân Thủ', normal: 'Kiếm Khách', hard: 'Tông Sư' };
+const DIFF_ICONS: Record<Difficulty, string>  = { easy: '🪄', normal: '⚔️', hard: '🔱' };
 const DIFF_DESC: Record<Difficulty, string> = {
-  easy:   'Máy đi ngẫu nhiên, phù hợp người mới',
-  normal: 'Máy suy nghĩ 3 nước, thách thức vừa phải',
-  hard:   'Máy suy nghĩ 5 nước, rất khó để thắng',
+  easy:   'Vừa bước vào giang hồ — học hỏi từng bước',
+  normal: 'Kiếm pháp điêu luyện — một trận đấu thú vị',
+  hard:   'Đỉnh cao võ học — không dễ để đánh bại',
 };
 
 const TIME_OPTIONS = [
@@ -35,10 +36,10 @@ const TIME_OPTIONS = [
 ];
 
 const THEME_OPTIONS: { label: string; value: BoardTheme; bg: string }[] = [
-  { label: 'Cổ điển', value: 'classic', bg: '#f0c060' },
-  { label: 'Tối',     value: 'dark',    bg: '#2d1f0e' },
-  { label: 'Ngọc',    value: 'jade',    bg: '#c2ddb0' },
-  { label: 'Lam',     value: 'blue',    bg: '#c8dff0' },
+  { label: 'Cổ Trận',   value: 'classic', bg: '#c8944a' },
+  { label: 'Hắc Dạ',   value: 'dark',    bg: '#0d1e38' },
+  { label: 'Lục Lâm',  value: 'jade',    bg: '#6aaa60' },
+  { label: 'Trùng Thiên', value: 'blue',  bg: '#5090d0' },
 ];
 
 export default function Lobby({ user, onPlayAI, onCreateRoom, onJoinRoom, onWatchRoom, onMatchmaking, onShowScoreboard, onShowGameHistory, onLogout }: Props) {
@@ -50,7 +51,7 @@ export default function Lobby({ user, onPlayAI, onCreateRoom, onJoinRoom, onWatc
   const [watchError, setWatchError] = useState('');
   const [timeControl, setTimeControl] = useState(0);
   const [theme, setTheme] = useState<BoardTheme>(
-    () => (localStorage.getItem('board_theme') as BoardTheme) || 'classic',
+    () => (localStorage.getItem('board_theme') as BoardTheme) || 'dark',
   );
 
   function handleTheme(t: BoardTheme) {
@@ -111,8 +112,11 @@ export default function Lobby({ user, onPlayAI, onCreateRoom, onJoinRoom, onWatc
     <div className="lobby-bg">
       <header className="lobby-header">
         <div className="lobby-logo">
-          <span>♟</span>
-          <span>Cờ Tướng Online</span>
+          <span className="lobby-logo-icon">將</span>
+          <div className="lobby-logo-text">
+            <span className="lobby-logo-main">Cờ Tướng Online</span>
+            <span className="lobby-logo-sub">Võ Đài Giang Hồ</span>
+          </div>
         </div>
         <div className="lobby-user">
           <span className="user-badge">👤 {user.username}</span>
@@ -125,18 +129,19 @@ export default function Lobby({ user, onPlayAI, onCreateRoom, onJoinRoom, onWatc
       <main className="lobby-main">
         {tab === 'home' && (
           <div className="lobby-home">
-            <h2>Xin chào, <span>{user.username}</span>!</h2>
-            <p>Chọn chế độ chơi:</p>
+            <p className="home-greeting">Giang Hồ Chào Đón</p>
+            <h2>Cao Thủ <span>{user.username}</span></h2>
+            <p className="home-desc">Chọn chế độ thi đấu của bạn</p>
             <div className="mode-cards">
               <div className="mode-card" onClick={() => setTab('ai')}>
-                <div className="mode-icon">🤖</div>
-                <h3>Chơi với máy</h3>
-                <p>Thử thách AI với 3 mức độ khó</p>
+                <span className="mode-icon">🤖</span>
+                <h3>Luyện Đấu với Máy</h3>
+                <p>Thách thức AI ở 3 cấp độ võ công</p>
               </div>
               <div className="mode-card" onClick={() => setTab('online')}>
-                <div className="mode-icon">🌐</div>
-                <h3>Chơi Online</h3>
-                <p>Thi đấu với người chơi khác</p>
+                <span className="mode-icon">⚔️</span>
+                <h3>Giang Hồ Online</h3>
+                <p>Thi đấu với cao thủ khắp nơi</p>
               </div>
             </div>
           </div>
@@ -154,8 +159,12 @@ export default function Lobby({ user, onPlayAI, onCreateRoom, onJoinRoom, onWatc
                   className={`diff-card ${diff === d ? 'selected' : ''}`}
                   onClick={() => setDiff(d)}
                 >
-                  <div className="diff-label">{DIFF_LABELS[d]}</div>
-                  <div className="diff-desc">{DIFF_DESC[d]}</div>
+                  <span className="diff-icon">{DIFF_ICONS[d]}</span>
+                  <div className="diff-text">
+                    <div className="diff-label">{DIFF_LABELS[d]}</div>
+                    <div className="diff-desc">{DIFF_DESC[d]}</div>
+                  </div>
+                  {diff === d && <span className="diff-selected-badge" />}
                 </div>
               ))}
             </div>

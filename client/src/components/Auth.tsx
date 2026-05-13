@@ -121,8 +121,9 @@ export default function Auth({ onLogin }: Props) {
     <div className="auth-bg">
       <div className="auth-card">
         <div className="auth-title">
-          <span className="auth-icon">♟</span>
+          <span className="auth-icon">將</span>
           <h1>Cờ Tướng Online</h1>
+          <span className="auth-sub">võ đài giang hồ</span>
         </div>
 
         {mode !== 'forgot' && (

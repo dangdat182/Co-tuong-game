@@ -1,9 +1,72 @@
 .board-wrapper {
   display: inline-block;
-  border-radius: 8px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  position: relative;
+  border-radius: 10px;
+  /* Multi-layer decorative frame */
+  box-shadow:
+    0 0 0 2px rgba(200,168,64,0.5),
+    0 0 0 5px rgba(6,12,28,0.9),
+    0 0 0 6px rgba(60,130,255,0.2),
+    0 20px 60px rgba(0,0,0,0.7),
+    0 4px 20px rgba(20,50,120,0.4);
   overflow: hidden;
-  background: #f0c060;
+}
+
+/* Dark (navy) theme board frame glow */
+.board-wrapper.theme-dark {
+  box-shadow:
+    0 0 0 2px rgba(200,168,64,0.45),
+    0 0 0 5px rgba(6,12,28,0.95),
+    0 0 0 6px rgba(60,130,255,0.25),
+    0 0 30px rgba(30,70,180,0.3),
+    0 20px 60px rgba(0,0,0,0.8),
+    inset 0 0 40px rgba(0,0,0,0.3);
+}
+
+.board-wrapper.theme-classic {
+  box-shadow:
+    0 0 0 2px rgba(200,168,64,0.6),
+    0 0 0 5px rgba(60,30,10,0.8),
+    0 0 0 7px rgba(200,148,64,0.2),
+    0 20px 60px rgba(0,0,0,0.6);
+}
+
+.board-wrapper.theme-jade {
+  box-shadow:
+    0 0 0 2px rgba(100,200,120,0.5),
+    0 0 0 5px rgba(10,30,10,0.9),
+    0 0 0 7px rgba(60,160,80,0.2),
+    0 20px 60px rgba(0,0,0,0.6);
+}
+
+.board-wrapper.theme-blue {
+  box-shadow:
+    0 0 0 2px rgba(80,160,220,0.5),
+    0 0 0 5px rgba(10,20,40,0.9),
+    0 0 0 7px rgba(60,120,200,0.2),
+    0 20px 60px rgba(0,0,0,0.6);
+}
+
+/* Gold corner ornaments via pseudo-elements */
+.board-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 6px; left: 6px;
+  width: 18px; height: 18px;
+  border-top: 2px solid rgba(200,168,64,0.7);
+  border-left: 2px solid rgba(200,168,64,0.7);
+  z-index: 2;
+  pointer-events: none;
+}
+.board-wrapper::after {
+  content: '';
+  position: absolute;
+  bottom: 6px; right: 6px;
+  width: 18px; height: 18px;
+  border-bottom: 2px solid rgba(200,168,64,0.7);
+  border-right: 2px solid rgba(200,168,64,0.7);
+  z-index: 2;
+  pointer-events: none;
 }
 
 .board-svg {

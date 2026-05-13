@@ -179,7 +179,7 @@ export function AIGame({ user, token, difficulty, timeControl, onBack }: AIGameP
     setHistory([]); setMoveRecords([]); setReviewIndex(null);
   }
 
-  const DIFF_LABEL: Record<Difficulty, string> = { easy: 'Dễ', normal: 'Bình thường', hard: 'Khó' };
+  const DIFF_LABEL: Record<Difficulty, string> = { easy: 'Tân Thủ', normal: 'Kiếm Khách', hard: 'Tông Sư' };
 
   return (
     <div className="game-bg">

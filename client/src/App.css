@@ -1,8 +1,28 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+:root {
+  --n0: #030609;
+  --n1: #060c18;
+  --n2: #0a1428;
+  --n3: #0f1c38;
+  --n4: #162848;
+  --n5: #1e3460;
+  --gold:  #c8a840;
+  --gold2: #e8c870;
+  --blue:  #4a9eff;
+  --blue2: #2a70d0;
+  --jade:  #3ab89a;
+  --red:   #cc2020;
+  --red2:  #e84040;
+  --t1: #dde8ff;
+  --t2: #8aaccc;
+  --t3: #4a6a8a;
+  --t4: #2a4060;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #1a0a00;
-  color: #e8d0a0;
+  background: var(--n1);
+  color: var(--t1);
   -webkit-font-smoothing: antialiased;
 }
