@@ -5,14 +5,17 @@ Game cờ tướng web với chế độ chơi vs AI và chơi online real-time.
 ## Tính năng
 
 - Đăng ký / đăng nhập / quên mật khẩu (câu hỏi bảo mật)
-- Chơi vs AI — 3 mức độ: Dễ / Bình thường / Khó (Minimax + Alpha-Beta)
+- Chơi vs AI — 3 mức độ: Tân Thủ / Kiếm Khách / Tông Sư (Minimax + Alpha-Beta)
+- **Chọn màu quân vs AI** — Quân Đỏ / Quân Đen / Ngẫu nhiên; bàn cờ tự lật khi chơi Đen
 - Chơi online real-time — tạo phòng & mã 6 ký tự, chat trong game
 - Timer đếm ngược — ∞ / 5 / 10 / 15 / 30 phút mỗi bên
 - Đề nghị hòa, đầu hàng, phát hiện chiếu hết / bế tắc
-- Bảng xếp hạng (Thắng×3 + Hòa×1 = Điểm)
-- 4 theme bàn cờ: Cổ điển / Tối / Ngọc / Lam
-- Âm thanh: đi quân, ăn quân, chiếu, thắng/thua/hòa
-- **Hoàn tác** (vs AI) — lùi 2 nước (nước bạn + nước AI) trong 1 click, phục hồi cả đồng hồ
+- Bảng xếp hạng (Thắng×3 + Hòa×1 = Điểm) + stats W/D/L hiển thị ngay trên Lobby
+- 4 theme bàn cờ: Cổ Trận / Hắc Dạ / Lục Lâm / Trùng Thiên
+- Âm thanh: đi quân, ăn quân, chiếu, thắng/thua/hòa + nút mute
+- **Quân bị ăn** — panel hiển thị quân đã ăn được trong cả chế độ vs AI lẫn online
+- **Gợi ý nước đi** (vs AI) — nút 💡 tính nước tốt nhất, highlight vàng trên bàn cờ 5 giây
+- **Hoàn tác** (vs AI) — lùi 2 nước (nước bạn + nước AI) trong 1 click, phục hồi cả đồng hồ và quân bị ăn
 - **Đấu lại** (online) — sau ván kết thúc, gửi đề nghị đấu lại, đối thủ đồng ý thì reset ngay không cần tạo phòng mới
 - **Copy link phòng** — tạo link `?join=CODE` gửi bạn bè, click link là vào thẳng (tự đăng nhập xong auto-join)
 - **Lịch sử nước đi** — xem lại từng nước đã đi, click vào dòng bất kỳ để xem lại thế cờ tại thời điểm đó
